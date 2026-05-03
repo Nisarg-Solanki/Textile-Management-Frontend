@@ -52,7 +52,7 @@ Machine Info (view) → Mill Summary (view)
 | Styling          | Tailwind CSS                    | 3.x                                |
 | Component system | shadcn/ui (Radix UI primitives) | latest                             |
 | Theme            | next-themes                     | latest                             |
-| Icons            | lucide-react                    | 1.14.0 — ONLY icon library allowed |
+| Icons            | lucide-react                    | ^0.475.0 — ONLY icon library allowed |
 | Toasts           | sonner                          | 2.0.7 — ONLY toast library allowed |
 | Global state     | Zustand                         | 5.x                                |
 | Server data      | TanStack Query                  | 5.x                                |
@@ -411,7 +411,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ```bash
 npx shadcn@latest init
 
-npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb button calendar card chart checkbox command dialog drawer dropdown-menu form input input-otp label pagination popover progress radio-group scroll-area select separator sheet sidebar skeleton sonner switch table tabs textarea toggle tooltip slider
+npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb button calendar card chart checkbox collapsible command dialog drawer dropdown-menu form input input-otp label pagination popover progress radio-group scroll-area select separator sheet sidebar skeleton sonner switch table tabs textarea toggle tooltip slider
 ```
 
 **Rules:**
@@ -1106,8 +1106,10 @@ export default function BeamsPage() {
     "react-dom": "19.x",
     "typescript": "5.x",
     "tailwindcss": "3.x",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.4.0",
     "next-themes": "latest",
-    "lucide-react": "1.14.0",
+    "lucide-react": "^0.475.0",
     "sonner": "2.0.7",
     "zustand": "5.x",
     "@tanstack/react-query": "5.x",
@@ -1124,14 +1126,16 @@ export default function BeamsPage() {
     "recharts": "^2.15.4",
     "cmdk": "1.1.1",
     "vaul": "1.1.2",
-    "input-otp": "1.4.2"
+    "input-otp": "1.4.2",
+    "@radix-ui/react-collapsible": "^1.1.12"
   },
   "devDependencies": {
     "@playwright/test": "latest",
     "openapi-typescript": "latest",
     "@types/node": "latest",
     "@types/react": "19.x",
-    "@types/react-dom": "19.x"
+    "@types/react-dom": "19.x",
+    "shadcn": "^4.6.0"
   },
   "overrides": {
     "react-is": "^19.0.0"

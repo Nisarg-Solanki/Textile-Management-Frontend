@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import {
-  FormControl,
+FormControl,
   FormDescription,
   FormField,
   FormItem,
@@ -65,7 +65,9 @@ export function SelectField<TFieldValues extends FieldValues = FieldValues>({
       control={control}
       name={name}
       render={({ field }) => {
-        const selectedLabel = options.find((o) => o.value === field.value)?.label;
+        const selectedLabel = options.find(
+          (o) => o.value === field.value,
+        )?.label;
 
         return (
           <FormItem>
