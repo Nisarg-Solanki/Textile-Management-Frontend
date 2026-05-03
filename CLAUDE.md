@@ -60,7 +60,7 @@ Machine Info (view) → Mill Summary (view)
 | Tables           | TanStack Table                  | 8.x                                |
 | HTTP client      | Axios                           | 1.15.2                             |
 | Date picker      | react-day-picker + date-fns     | 9.x / 4.x                          |
-| Charts           | recharts                        | 3.x                                |
+| Charts           | recharts                        | 2.x                                |
 | Type generation  | openapi-typescript              | latest                             |
 | Testing          | Playwright                      | latest                             |
 
@@ -1121,7 +1121,7 @@ export default function BeamsPage() {
     "class-variance-authority": "latest",
     "react-day-picker": "9.14.0",
     "date-fns": "4.x",
-    "recharts": "3.7.0",
+    "recharts": "^2.15.4",
     "cmdk": "1.1.1",
     "vaul": "1.1.2",
     "input-otp": "1.4.2"
@@ -1139,7 +1139,7 @@ export default function BeamsPage() {
 }
 ```
 
-> **`overrides` note:** recharts 3.x has a peer dep on `react-is` from React 18.
+> **`overrides` note:** recharts 2.x has a peer dep on `react-is` from React 18.
 > The override forces React 19's version — required when using recharts with React 19.
 
 ---
