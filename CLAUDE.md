@@ -45,24 +45,24 @@ Machine Info (view) → Mill Summary (view)
 
 ## 2. Tech Stack
 
-| Layer            | Choice                          | Version                            |
-| ---------------- | ------------------------------- | ---------------------------------- |
-| Framework        | Next.js App Router              | 15.x                               |
-| Language         | TypeScript strict               | 5.x                                |
-| Styling          | Tailwind CSS                    | 3.x                                |
-| Component system | shadcn/ui (Radix UI primitives) | latest                             |
-| Theme            | next-themes                     | latest                             |
+| Layer            | Choice                          | Version                              |
+| ---------------- | ------------------------------- | ------------------------------------ |
+| Framework        | Next.js App Router              | 15.x                                 |
+| Language         | TypeScript strict               | 5.x                                  |
+| Styling          | Tailwind CSS                    | 3.x                                  |
+| Component system | shadcn/ui (Radix UI primitives) | latest                               |
+| Theme            | next-themes                     | latest                               |
 | Icons            | lucide-react                    | ^0.475.0 — ONLY icon library allowed |
-| Toasts           | sonner                          | 2.0.7 — ONLY toast library allowed |
-| Global state     | Zustand                         | 5.x                                |
-| Server data      | TanStack Query                  | 5.x                                |
-| Forms            | React Hook Form + Zod           | latest                             |
-| Tables           | TanStack Table                  | 8.x                                |
-| HTTP client      | Axios                           | 1.15.2                             |
-| Date picker      | react-day-picker + date-fns     | 9.x / 4.x                          |
-| Charts           | recharts                        | 2.x                                |
-| Type generation  | openapi-typescript              | latest                             |
-| Testing          | Playwright                      | latest                             |
+| Toasts           | sonner                          | 2.0.7 — ONLY toast library allowed   |
+| Global state     | Zustand                         | 5.x                                  |
+| Server data      | TanStack Query                  | 5.x                                  |
+| Forms            | React Hook Form + Zod           | latest                               |
+| Tables           | TanStack Table                  | 8.x                                  |
+| HTTP client      | Axios                           | 1.15.2                               |
+| Date picker      | react-day-picker + date-fns     | 9.x / 4.x                            |
+| Charts           | recharts                        | 2.x                                  |
+| Type generation  | openapi-typescript              | latest                               |
+| Testing          | Playwright                      | latest                               |
 
 **Absolute rules:**
 

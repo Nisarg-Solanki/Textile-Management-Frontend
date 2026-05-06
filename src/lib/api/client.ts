@@ -45,7 +45,9 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         useAuthStore.getState().clear();
-        window.location.href = ROUTES.LOGIN;
+        if (typeof window !== "undefined") {
+          window.location.href = ROUTES.LOGIN;
+        }
       } finally {
         isRefreshing = false;
       }

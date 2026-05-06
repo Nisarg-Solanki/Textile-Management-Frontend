@@ -30,9 +30,12 @@ export async function getList<T>(
   }
 }
 
-export async function getOne<T>(url: string): Promise<T> {
+export async function getOne<T>(url: string, token?: string): Promise<T> {
   try {
-    const res = await apiClient.get<ApiResponse<T>>(url);
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined;
+    const res = await apiClient.get<ApiResponse<T>>(url, config);
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
