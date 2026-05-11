@@ -25,7 +25,7 @@
 - OpenAPI JSON (for type generation): `http://localhost:4000/api/v1/api-docs.json`
 - Never assume an endpoint path, request body shape, or response structure — check Swagger first.
 - If Swagger and this CLAUDE.md conflict, Swagger wins for API contracts. Flag the discrepancy.
-- Run `npm run generate:types` after any backend change to regenerate `src/types/api.d.ts` from the live OpenAPI spec.
+- Run `npm run generate:types` before starting dev after any backend schema change — this regenerates `src/types/api.d.ts` which application code imports through `src/types/app.ts`.
 
 ---
 
@@ -256,8 +256,8 @@ frontend/
 │   │       ├── cn.ts                      # clsx + tailwind-merge
 │   │       └── handleError.ts
 │   ├── types/
-│   │   ├── api.d.ts                       # AUTO-GENERATED — do not edit manually
-│   │   └── app.ts                         # Manual types: store shape, permission map, etc.
+│   │   ├── api.d.ts                       # OPTIONAL — generated via `npm run generate:types`, reference only, git-ignored
+│   │   └── app.ts                         # Manual shared types: domain entities used across multiple modules
 │   └── middleware.ts                      # Server-side auth guard + role redirect
 ├── tests/
 │   └── e2e/
@@ -422,19 +422,44 @@ npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb butto
 
 ---
 
-## 7. Type Generation
+## 7. Type Strategy
+
+Types come from **two sources**, depending on what the backend OpenAPI spec exposes:
+
+| Source | What it covers | Where it lives |
+| --- | --- | --- |
+| Generated (`api.d.ts`) | **Request body shapes** for all POST/PUT endpoints + query/path params | `src/types/api.d.ts` (git-ignored, generated) |
+| Manual | **Response/domain types** — the backend spec has `content?: never` on all responses | `src/types/app.ts` |
+
+**`src/types/app.ts` is the single import point for all application types.** It imports generated shapes from `api.d.ts` and re-exports them alongside manual types. Application code always imports from `@/types/app`, never directly from `@/types/api`.
+
+```typescript
+// src/types/app.ts
+import type { paths } from "@/types/api";
+
+// From generated spec — request body shapes
+export type PermissionRow =
+  paths["/api/v1/permissions/{adminId}"]["put"]["requestBody"]["content"]["application/json"][number];
+export type Permission = PermissionRow;
+
+// Manual — response bodies not in OpenAPI spec
+export type AuthUser = { ... };
+```
+
+**Before dev or build, run:**
 
 ```bash
 npm run generate:types
 ```
 
-```json
-"generate:types": "openapi-typescript http://localhost:4000/api/v1/api-docs.json -o src/types/api.d.ts",
-"prebuild": "npm run generate:types"
-```
+`prebuild` runs this automatically before `npm run build`. For `npm run dev`, run it once manually after any backend schema change.
 
-- `src/types/api.d.ts` is git-ignored — never committed, always regenerated from the live backend.
-- Never import from `api.d.ts` directly — access types via module API functions in `src/lib/api/`.
+**Rules:**
+
+- Always import types from `@/types/app` — never directly from `@/types/api`
+- `src/types/api.d.ts` is git-ignored — every developer must generate it locally
+- Use `z.infer<typeof schema>` for form input types in `src/lib/schemas/` — never duplicate the schema type manually
+- Response/domain types that the spec doesn't define go in `src/types/app.ts` as manual definitions
 
 ---
 
@@ -1263,7 +1288,8 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT use `toast.error(err)` directly — always use `showErrorToast(err)`
 - Do NOT create a second Axios instance
 - Do NOT use `useEffect` to fetch data — use TanStack Query or Server Components
-- Do NOT edit `src/types/api.d.ts` — it is auto-generated
+- Do NOT import directly from `src/types/api.d.ts` — always go through `src/types/app.ts`
+- Do NOT edit `src/types/api.d.ts` — it is auto-generated; run `npm run generate:types` to regenerate it
 - Do NOT edit files in `src/components/ui/` manually
 - Do NOT use native `<input type="date">` — always use `DatePickerField`
 - Do NOT hardcode route strings — always import from `@/lib/routes` and use `ROUTES`

@@ -1,0 +1,20 @@
+import type { paths } from "@/types/api";
+
+// ─── From generated OpenAPI spec ────────────────────────────────────────────
+
+export type PermissionRow =
+  paths["/api/v1/permissions/{adminId}"]["put"]["requestBody"]["content"]["application/json"][number];
+
+// Same shape as PermissionRow — alias used in Zustand store
+export type Permission = PermissionRow;
+
+// ─── Manual — response bodies are not in the OpenAPI spec ───────────────────
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "super_admin" | "admin";
+  status: string;
+  createdAt: Date;
+};

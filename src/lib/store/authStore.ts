@@ -1,20 +1,7 @@
 import { create } from "zustand";
+import type { AuthUser, Permission } from "@/types/app";
 
-export type Permission = {
-  module: string;
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-};
-
-export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: "super_admin" | "admin";
-  status: string;
-};
+export type { AuthUser, Permission };
 
 type AuthState = {
   user: AuthUser | null;

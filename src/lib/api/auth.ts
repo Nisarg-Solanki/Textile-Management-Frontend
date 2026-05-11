@@ -1,6 +1,6 @@
 import { post, getList } from "@/lib/api/request";
 import type { PaginatedResponse } from "@/lib/api/request";
-import type { AuthUser } from "@/lib/store/authStore";
+import type { AuthUser } from "@/types/app";
 
 type EmptyBody = Record<string, never>;
 
