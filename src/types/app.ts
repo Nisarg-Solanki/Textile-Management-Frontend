@@ -8,6 +8,12 @@ export type PermissionRow =
 // Same shape as PermissionRow — alias used in Zustand store
 export type Permission = PermissionRow;
 
+export type FirmListParams =
+  paths["/api/v1/firms"]["get"]["parameters"]["query"];
+
+export type CreateFirmBody =
+  paths["/api/v1/firms"]["post"]["requestBody"]["content"]["application/json"];
+
 // ─── Manual — response bodies are not in the OpenAPI spec ───────────────────
 
 export type AuthUser = {
@@ -17,4 +23,18 @@ export type AuthUser = {
   role: "super_admin" | "admin";
   status: string;
   createdAt: Date;
+};
+
+export type Firm = {
+  id: string;
+  firmName: string;
+  firmCode: string;
+  challanEnable: boolean;
+  srNoSeries: string | null;
+  address: string | null;
+  contactPerson: string | null;
+  contactNumber: string | null;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
 };
