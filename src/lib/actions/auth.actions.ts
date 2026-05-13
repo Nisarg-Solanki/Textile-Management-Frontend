@@ -1,14 +1,18 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { logout, approveUser, rejectUser } from "@/lib/api/auth";
-import { apiClient } from "@/lib/api/client";
-import { getOne } from "@/lib/api/request";
-import { handleApiError } from "@/lib/utils/handleError";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import {
+  loginRaw,
+  logout,
+  buildSession,
+  approveUser,
+  rejectUser,
+} from "@/lib/api/auth";
+import { handleApiError } from "@/lib/utils/handleError";
 import { ROUTES } from "@/lib/routes";
-import type { AuthUser, Permission } from "@/lib/store/authStore";
+import type { AuthUser, Permission } from "@/types/app";
 
 type LoginSuccess = {
   success: true;
@@ -67,34 +71,24 @@ export async function loginAction(
   password: string,
 ): Promise<LoginActionResult> {
   try {
-    // Use apiClient directly (not post() helper) so we can access the raw
-    // Set-Cookie response header and forward it to the browser via Next.js cookies().
-    // The post() helper discards headers and only returns res.data.data.
-    const res = await apiClient.post<{
-      success: boolean;
-      data: { user: AuthUser; accessToken: string };
-    }>("/auth/login", { email, password });
+    const { data, setCookieHeader } = await loginRaw(email, password);
+    const { user, accessToken } = data;
 
-    const { user, accessToken } = res.data.data;
-
-    const rawCookies = res.headers["set-cookie"];
-    if (rawCookies?.length) {
+    if (setCookieHeader?.length) {
       const cookieStore = await cookies();
-      for (const cookieStr of rawCookies) {
+      for (const cookieStr of setCookieHeader) {
         const { name, value, options } = parseSetCookieHeader(cookieStr);
         cookieStore.set(name, value, options);
       }
     }
 
-    let permissions: Permission[] = [];
-    if (user.role === "admin") {
-      permissions = await getOne<Permission[]>(
-        `/permissions/${user.id}`,
-        accessToken,
-      );
-    }
-
-    return { success: true, user, accessToken, permissions };
+    const session = await buildSession(user, accessToken);
+    return {
+      success: true,
+      user: session.user,
+      accessToken: session.accessToken,
+      permissions: session.permissions,
+    };
   } catch (err) {
     const apiError = handleApiError(err);
     return { success: false, message: apiError.message };
@@ -102,7 +96,13 @@ export async function loginAction(
 }
 
 export async function logoutAction(): Promise<void> {
-  await logout();
+  try {
+    await logout();
+  } catch {
+    // proceed with cookie cleanup even if the backend call fails
+  }
+  const cookieStore = await cookies();
+  cookieStore.delete("refreshToken");
   redirect(ROUTES.LOGIN);
 }
 

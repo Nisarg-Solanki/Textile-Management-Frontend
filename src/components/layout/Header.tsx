@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Sun, Moon, LogOut } from "lucide-react";
 import {
@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/store/authStore";
 import { ROUTES } from "@/lib/routes";
+import { logoutAction } from "@/lib/actions/auth.actions";
 
 function formatSegment(segment: string): string {
   return segment
@@ -35,15 +36,15 @@ function formatSegment(segment: string): string {
 
 export function Header() {
   const pathname = usePathname();
-  const router = useRouter();
+  // const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, clear } = useAuthStore();
 
   const segments = pathname.split("/").filter(Boolean);
 
-  function handleLogout() {
+  async function handleLogout() {
     clear();
-    router.push(ROUTES.LOGIN);
+    await logoutAction();
   }
 
   function toggleTheme() {
@@ -110,7 +111,9 @@ export function Header() {
               <span className="font-medium">{user?.name}</span>
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
-              <span className="text-xs text-muted-foreground">{user?.email}</span>
+              <span className="text-xs text-muted-foreground">
+                {user?.email}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <Badge variant="secondary" className="text-xs">

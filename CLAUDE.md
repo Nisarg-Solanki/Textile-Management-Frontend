@@ -647,6 +647,79 @@ export function showErrorToast(err: unknown): void {
 }
 ```
 
+### Centralized auth API layer (`src/lib/api/auth.ts`)
+
+`src/lib/api/auth.ts` is the single source of truth for **every** auth-related API call.
+Server actions, the dashboard layout, the Axios refresh interceptor, and any future
+auth flows must consume from here — never call `apiClient` or `getOne`/`post` for
+`/auth/*` or `/permissions/{userId}` directly.
+
+The module exposes three layers:
+
+1. **Bare API calls** — one function per endpoint:
+   `login`, `register`, `logout`, `forgotPassword`, `resetPassword`, `refresh`,
+   `getPermissionsFor`, `getPendingUsers`, `approveUser`, `rejectUser`, `createUser`.
+   Each returns the unwrapped response data (no `{ data: { data: ... } }` plumbing).
+
+2. **Composed flows** — bundle multiple bare calls into a single semantic operation:
+   - `buildSession(user, accessToken) → Session` — fetches permissions for `admin`
+     users (super_admins skip the call); permission failures are swallowed so the
+     user can still navigate without elevated permissions until next refresh.
+   - `refreshSession() → Session` — calls `/auth/refresh` then `buildSession`. This
+     is what the dashboard layout uses to re-hydrate Zustand on a hard page refresh.
+
+3. **Server-action-only escape hatch** — `loginRaw(email, password)` bypasses the
+   `post` helper to expose the `Set-Cookie` response header so `loginAction` can
+   forward the `refreshToken` to the browser via Next.js `cookies()`. **Never call
+   from client components** — the browser handles cookies automatically and headers
+   are not useful there.
+
+```typescript
+// Shape returned by /auth/refresh — backend echoes user info alongside the token
+export type RefreshResponse = {
+  user: AuthUser;
+  accessToken: string;
+};
+
+// Unit that auth state is hydrated as
+export type Session = {
+  user: AuthUser;
+  accessToken: string;
+  permissions: Permission[];
+};
+
+export async function buildSession(
+  user: AuthUser,
+  accessToken: string,
+): Promise<Session> {
+  let permissions: Permission[] = [];
+  if (user.role === "admin") {
+    try {
+      permissions = await getPermissionsFor(user.id, accessToken);
+    } catch {
+      // permissions stay empty if the fetch fails
+    }
+  }
+  return { user, accessToken, permissions };
+}
+
+export async function refreshSession(): Promise<Session> {
+  const { user, accessToken } = await refresh();
+  return buildSession(user, accessToken);
+}
+```
+
+**Rules:**
+
+- All auth flows compose from these helpers — do not write parallel implementations.
+- `/auth/refresh` returns `{ user, accessToken }` (no permissions). Permissions are
+  fetched separately via `getPermissionsFor` — already wired inside `buildSession`.
+- Super-admins skip the permissions fetch entirely; they get `true` from
+  `usePermission` regardless of stored permissions.
+- If the backend later adds fields to the refresh response or a `/auth/me`
+  endpoint, **only `refresh()` and `refreshSession()` change** — no consumer needs
+  to know.
+
 ---
 
 ## 9. Zustand Auth Store (`src/lib/store/authStore.ts`)
@@ -992,6 +1065,10 @@ Dark mode via `next-themes`. Tailwind `darkMode: 'class'`. Always use semantic c
 
 ## 18. Server Actions (`src/lib/actions/`)
 
+Domain server actions consume `src/lib/api/request.ts` (`post`/`put`/`del`).
+Auth server actions (`auth.actions.ts`) consume `src/lib/api/auth.ts` instead —
+never reach into `apiClient` or duplicate the auth flow.
+
 ```typescript
 "use server";
 import { post, put, del } from "@/lib/api/request";
@@ -1020,6 +1097,54 @@ export async function deleteBeamAction(id: string) {
   revalidatePath(ROUTES.BEAMS.LIST);
 }
 ```
+
+### Auth server actions (`auth.actions.ts`)
+
+`loginAction` uses `loginRaw` to forward backend `Set-Cookie` headers (the
+`refreshToken`) to the browser, then composes the client session via `buildSession`:
+
+```typescript
+"use server";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { loginRaw, logout, buildSession } from "@/lib/api/auth";
+import { ROUTES } from "@/lib/routes";
+
+export async function loginAction(email: string, password: string) {
+  const { data, setCookieHeader } = await loginRaw(email, password);
+  if (setCookieHeader?.length) {
+    const cookieStore = await cookies();
+    for (const cookieStr of setCookieHeader) {
+      const { name, value, options } = parseSetCookieHeader(cookieStr);
+      cookieStore.set(name, value, options);
+    }
+  }
+  const session = await buildSession(data.user, data.accessToken);
+  return { success: true, ...session };
+}
+
+export async function logoutAction(): Promise<void> {
+  try {
+    await logout();
+  } catch {
+    // proceed with cookie cleanup even if the backend call fails
+  }
+  const cookieStore = await cookies();
+  cookieStore.delete("refreshToken");
+  redirect(ROUTES.LOGIN);
+}
+```
+
+**Logout rules:**
+
+- The server action — not the client — owns `refreshToken` cookie deletion.
+  The middleware reads that cookie to decide whether a route is public, so any
+  client-only `clear()` of Zustand without deleting the cookie leaves the user
+  trapped in a redirect loop.
+- The backend `/auth/logout` call is best-effort; cookie cleanup proceeds even
+  if it fails (network down, token already expired, etc.).
+- Header's `handleLogout` calls `clear()` on the Zustand store *and* awaits
+  `logoutAction()` — both are required.
 
 ---
 
@@ -1096,8 +1221,34 @@ The sidebar and dashboard should guide users through the correct setup order:
 
 **Layer 1 — middleware.ts:** checks `refreshToken` cookie, redirects to `ROUTES.LOGIN` if missing.
 
-**Layer 2 — `(dashboard)/layout.tsx`:** on hard refresh, Zustand is empty — calls `/auth/refresh`
-to restore session, fetches permissions. Shows skeleton while re-hydrating.
+**Layer 2 — `(dashboard)/layout.tsx`:** on hard refresh, Zustand is empty — calls
+`refreshSession()` from `src/lib/api/auth.ts` to restore the full session
+(user + token + permissions) in a single helper. Shows skeleton while re-hydrating.
+The `.catch` branch sets `isHydrating = false` *before* redirecting so the skeleton
+never sticks if the redirect is slow. A `cancelled` flag in cleanup avoids
+setting state on instances unmounted by React Strict Mode in dev.
+
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  const { user, setAuth } = useAuthStore.getState();
+  if (user) { setIsHydrating(false); return; }
+
+  refreshSession()
+    .then((session) => {
+      if (cancelled) return;
+      setAuth(session.user, session.accessToken, session.permissions);
+      setIsHydrating(false);
+    })
+    .catch(() => {
+      if (cancelled) return;
+      setIsHydrating(false);
+      router.push(ROUTES.LOGIN);
+    });
+
+  return () => { cancelled = true; };
+}, [router]);
+```
 
 **Layer 3 — `PermissionGate` + `SuperAdminGate`:** per-button and per-page permission checks.
 
@@ -1281,7 +1432,10 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT install any toast/notification library other than `sonner`
 - Do NOT install any UI library other than `shadcn/ui`
 - Do NOT use `any` type in TypeScript
-- Do NOT call `apiClient` directly from components — use `src/lib/api/request.ts`
+- Do NOT call `apiClient` directly from components, layouts, or server actions — use `src/lib/api/request.ts` for generic CRUD and `src/lib/api/auth.ts` for any auth flow
+- Do NOT duplicate auth flows (login, refresh, logout, permissions fetch) — every consumer composes from `src/lib/api/auth.ts`. New auth-related calls land there too
+- Do NOT call `/auth/refresh` directly from a layout or component — call `refreshSession()` so the user + permissions are rebuilt as a single `Session`
+- Do NOT delete the `refreshToken` cookie from client code — `logoutAction` owns it. Client code only calls `useAuthStore.getState().clear()` and awaits `logoutAction()`
 - Do NOT store `accessToken` in localStorage — Zustand memory only
 - Do NOT hardcode colour values — use semantic CSS variables via Tailwind classes
 - Do NOT skip `PermissionGate` on any action button or write operation

@@ -7,19 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
-import { apiClient } from "@/lib/api/client";
+import { refreshSession } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/store/authStore";
-import type { AuthUser, Permission } from "@/lib/store/authStore";
 import { ROUTES } from "@/lib/routes";
-
-type RefreshResponseBody = {
-  success: boolean;
-  data: {
-    accessToken: string;
-    user: AuthUser;
-    permissions: Permission[];
-  };
-};
 
 function DashboardSkeleton() {
   return (
@@ -62,6 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const { user, setAuth } = useAuthStore.getState();
 
     if (user) {
@@ -69,15 +60,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    apiClient
-      .post<RefreshResponseBody>("/auth/refresh")
-      .then(({ data }) => {
-        setAuth(data.data.user, data.data.accessToken, data.data.permissions);
+    refreshSession()
+      .then((session) => {
+        if (cancelled) return;
+        setAuth(session.user, session.accessToken, session.permissions);
         setIsHydrating(false);
       })
       .catch(() => {
+        if (cancelled) return;
+        setIsHydrating(false);
         router.push(ROUTES.LOGIN);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (isHydrating) {
