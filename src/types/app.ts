@@ -20,6 +20,12 @@ export type MillListParams =
 export type CreateMillBody =
   paths["/api/v1/mills"]["post"]["requestBody"]["content"]["application/json"];
 
+export type MachineListParams =
+  paths["/api/v1/machines"]["get"]["parameters"]["query"];
+
+export type CreateMachineBody =
+  paths["/api/v1/machines"]["post"]["requestBody"]["content"]["application/json"];
+
 // ─── Manual — response bodies are not in the OpenAPI spec ───────────────────
 
 export type AuthUser = {
