@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   type Column,
   type ColumnDef,
+  type Row,
   type SortingState,
   type VisibilityState,
   flexRender,
@@ -13,6 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import {
   Table,
   TableBody,
@@ -48,6 +50,7 @@ type Props<T> = {
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   caption?: string;
+  getRowClassName?: (row: Row<T>) => string;
 };
 
 function getColumnLabel<T>(col: Column<T, unknown>): string {
@@ -68,6 +71,7 @@ export function DataTable<T>({
   pagination,
   onPageChange,
   caption,
+  getRowClassName,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -138,7 +142,7 @@ export function DataTable<T>({
               </Card>
             ))
           : table.getRowModel().rows.map((row) => (
-              <Card key={row.id}>
+              <Card key={row.id} className={getRowClassName?.(row)}>
                 <CardContent className="pt-4 space-y-2">
                   {row.getVisibleCells().map((cell) => (
                     <div
@@ -223,6 +227,7 @@ export function DataTable<T>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
+                  className={cn(getRowClassName?.(row))}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
