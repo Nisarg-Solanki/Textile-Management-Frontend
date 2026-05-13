@@ -25,7 +25,7 @@
 - OpenAPI JSON (for type generation): `http://localhost:4000/api/v1/api-docs.json`
 - Never assume an endpoint path, request body shape, or response structure — check Swagger first.
 - If Swagger and this CLAUDE.md conflict, Swagger wins for API contracts. Flag the discrepancy.
-- Run `npm run generate:types` after any backend change to regenerate `src/types/api.d.ts` from the live OpenAPI spec.
+- Run `npm run generate:types` before starting dev after any backend schema change — this regenerates `src/types/api.d.ts` which application code imports through `src/types/app.ts`.
 
 ---
 
@@ -45,24 +45,24 @@ Machine Info (view) → Mill Summary (view)
 
 ## 2. Tech Stack
 
-| Layer            | Choice                          | Version                            |
-| ---------------- | ------------------------------- | ---------------------------------- |
-| Framework        | Next.js App Router              | 15.x                               |
-| Language         | TypeScript strict               | 5.x                                |
-| Styling          | Tailwind CSS                    | 3.x                                |
-| Component system | shadcn/ui (Radix UI primitives) | latest                             |
-| Theme            | next-themes                     | latest                             |
-| Icons            | lucide-react                    | 1.14.0 — ONLY icon library allowed |
-| Toasts           | sonner                          | 2.0.7 — ONLY toast library allowed |
-| Global state     | Zustand                         | 5.x                                |
-| Server data      | TanStack Query                  | 5.x                                |
-| Forms            | React Hook Form + Zod           | latest                             |
-| Tables           | TanStack Table                  | 8.x                                |
-| HTTP client      | Axios                           | 1.15.2                             |
-| Date picker      | react-day-picker + date-fns     | 9.x / 4.x                          |
-| Charts           | recharts                        | 3.x                                |
-| Type generation  | openapi-typescript              | latest                             |
-| Testing          | Playwright                      | latest                             |
+| Layer            | Choice                          | Version                              |
+| ---------------- | ------------------------------- | ------------------------------------ |
+| Framework        | Next.js App Router              | 15.x                                 |
+| Language         | TypeScript strict               | 5.x                                  |
+| Styling          | Tailwind CSS                    | 3.x                                  |
+| Component system | shadcn/ui (Radix UI primitives) | latest                               |
+| Theme            | next-themes                     | latest                               |
+| Icons            | lucide-react                    | ^0.475.0 — ONLY icon library allowed |
+| Toasts           | sonner                          | 2.0.7 — ONLY toast library allowed   |
+| Global state     | Zustand                         | 5.x                                  |
+| Server data      | TanStack Query                  | 5.x                                  |
+| Forms            | React Hook Form + Zod           | latest                               |
+| Tables           | TanStack Table                  | 8.x                                  |
+| HTTP client      | Axios                           | 1.15.2                               |
+| Date picker      | react-day-picker + date-fns     | 9.x / 4.x                            |
+| Charts           | recharts                        | 2.x                                  |
+| Type generation  | openapi-typescript              | latest                               |
+| Testing          | Playwright                      | latest                               |
 
 **Absolute rules:**
 
@@ -256,8 +256,8 @@ frontend/
 │   │       ├── cn.ts                      # clsx + tailwind-merge
 │   │       └── handleError.ts
 │   ├── types/
-│   │   ├── api.d.ts                       # AUTO-GENERATED — do not edit manually
-│   │   └── app.ts                         # Manual types: store shape, permission map, etc.
+│   │   ├── api.d.ts                       # OPTIONAL — generated via `npm run generate:types`, reference only, git-ignored
+│   │   └── app.ts                         # Manual shared types: domain entities used across multiple modules
 │   └── middleware.ts                      # Server-side auth guard + role redirect
 ├── tests/
 │   └── e2e/
@@ -411,7 +411,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ```bash
 npx shadcn@latest init
 
-npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb button calendar card chart checkbox command dialog drawer dropdown-menu form input input-otp label pagination popover progress radio-group scroll-area select separator sheet sidebar skeleton sonner switch table tabs textarea toggle tooltip slider
+npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb button calendar card chart checkbox collapsible command dialog drawer dropdown-menu form input input-otp label pagination popover progress radio-group scroll-area select separator sheet sidebar skeleton sonner switch table tabs textarea toggle tooltip slider
 ```
 
 **Rules:**
@@ -422,19 +422,44 @@ npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb butto
 
 ---
 
-## 7. Type Generation
+## 7. Type Strategy
+
+Types come from **two sources**, depending on what the backend OpenAPI spec exposes:
+
+| Source | What it covers | Where it lives |
+| --- | --- | --- |
+| Generated (`api.d.ts`) | **Request body shapes** for all POST/PUT endpoints + query/path params | `src/types/api.d.ts` (git-ignored, generated) |
+| Manual | **Response/domain types** — the backend spec has `content?: never` on all responses | `src/types/app.ts` |
+
+**`src/types/app.ts` is the single import point for all application types.** It imports generated shapes from `api.d.ts` and re-exports them alongside manual types. Application code always imports from `@/types/app`, never directly from `@/types/api`.
+
+```typescript
+// src/types/app.ts
+import type { paths } from "@/types/api";
+
+// From generated spec — request body shapes
+export type PermissionRow =
+  paths["/api/v1/permissions/{adminId}"]["put"]["requestBody"]["content"]["application/json"][number];
+export type Permission = PermissionRow;
+
+// Manual — response bodies not in OpenAPI spec
+export type AuthUser = { ... };
+```
+
+**Before dev or build, run:**
 
 ```bash
 npm run generate:types
 ```
 
-```json
-"generate:types": "openapi-typescript http://localhost:4000/api/v1/api-docs.json -o src/types/api.d.ts",
-"prebuild": "npm run generate:types"
-```
+`prebuild` runs this automatically before `npm run build`. For `npm run dev`, run it once manually after any backend schema change.
 
-- `src/types/api.d.ts` is git-ignored — never committed, always regenerated from the live backend.
-- Never import from `api.d.ts` directly — access types via module API functions in `src/lib/api/`.
+**Rules:**
+
+- Always import types from `@/types/app` — never directly from `@/types/api`
+- `src/types/api.d.ts` is git-ignored — every developer must generate it locally
+- Use `z.infer<typeof schema>` for form input types in `src/lib/schemas/` — never duplicate the schema type manually
+- Response/domain types that the spec doesn't define go in `src/types/app.ts` as manual definitions
 
 ---
 
@@ -523,6 +548,16 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Internal helper — only needed when calling from a server context that has a token
+// but no access to the Zustand interceptor (e.g. auth.actions.ts).
+// For all client-side calls the Axios interceptor in client.ts handles this automatically.
+function authHeader(
+  token?: string,
+): { headers: { Authorization: string } } | undefined {
+  if (token) return { headers: { Authorization: `Bearer ${token}` } };
+  return undefined;
+}
+
 export async function getList<T>(
   url: string,
   params?: Record<string, string | number | boolean | undefined>,
@@ -535,9 +570,9 @@ export async function getList<T>(
   }
 }
 
-export async function getOne<T>(url: string): Promise<T> {
+export async function getOne<T>(url: string, token?: string): Promise<T> {
   try {
-    const res = await apiClient.get<ApiResponse<T>>(url);
+    const res = await apiClient.get<ApiResponse<T>>(url, authHeader(token));
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -547,9 +582,14 @@ export async function getOne<T>(url: string): Promise<T> {
 export async function post<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.post<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.post<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -559,18 +599,23 @@ export async function post<TBody, TResponse>(
 export async function put<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.put<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.put<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
   }
 }
 
-export async function del(url: string): Promise<void> {
+export async function del(url: string, token?: string): Promise<void> {
   try {
-    await apiClient.delete(url);
+    await apiClient.delete(url, authHeader(token));
   } catch (err) {
     throw handleApiError(err);
   }
@@ -621,6 +666,79 @@ export function showErrorToast(err: unknown): void {
   toast.error(message);
 }
 ```
+
+### Centralized auth API layer (`src/lib/api/auth.ts`)
+
+`src/lib/api/auth.ts` is the single source of truth for **every** auth-related API call.
+Server actions, the dashboard layout, the Axios refresh interceptor, and any future
+auth flows must consume from here — never call `apiClient` or `getOne`/`post` for
+`/auth/*` or `/permissions/{userId}` directly.
+
+The module exposes three layers:
+
+1. **Bare API calls** — one function per endpoint:
+   `login`, `register`, `logout`, `forgotPassword`, `resetPassword`, `refresh`,
+   `getPermissionsFor`, `getPendingUsers`, `approveUser`, `rejectUser`, `createUser`.
+   Each returns the unwrapped response data (no `{ data: { data: ... } }` plumbing).
+
+2. **Composed flows** — bundle multiple bare calls into a single semantic operation:
+   - `buildSession(user, accessToken) → Session` — fetches permissions for `admin`
+     users (super_admins skip the call); permission failures are swallowed so the
+     user can still navigate without elevated permissions until next refresh.
+   - `refreshSession() → Session` — calls `/auth/refresh` then `buildSession`. This
+     is what the dashboard layout uses to re-hydrate Zustand on a hard page refresh.
+
+3. **Server-action-only escape hatch** — `loginRaw(email, password)` bypasses the
+   `post` helper to expose the `Set-Cookie` response header so `loginAction` can
+   forward the `refreshToken` to the browser via Next.js `cookies()`. **Never call
+   from client components** — the browser handles cookies automatically and headers
+   are not useful there.
+
+```typescript
+// Shape returned by /auth/refresh — backend echoes user info alongside the token
+export type RefreshResponse = {
+  user: AuthUser;
+  accessToken: string;
+};
+
+// Unit that auth state is hydrated as
+export type Session = {
+  user: AuthUser;
+  accessToken: string;
+  permissions: Permission[];
+};
+
+export async function buildSession(
+  user: AuthUser,
+  accessToken: string,
+): Promise<Session> {
+  let permissions: Permission[] = [];
+  if (user.role === "admin") {
+    try {
+      permissions = await getPermissionsFor(user.id, accessToken);
+    } catch {
+      // permissions stay empty if the fetch fails
+    }
+  }
+  return { user, accessToken, permissions };
+}
+
+export async function refreshSession(): Promise<Session> {
+  const { user, accessToken } = await refresh();
+  return buildSession(user, accessToken);
+}
+```
+
+**Rules:**
+
+- All auth flows compose from these helpers — do not write parallel implementations.
+- `/auth/refresh` returns `{ user, accessToken }` (no permissions). Permissions are
+  fetched separately via `getPermissionsFor` — already wired inside `buildSession`.
+- Super-admins skip the permissions fetch entirely; they get `true` from
+  `usePermission` regardless of stored permissions.
+- If the backend later adds fields to the refresh response or a `/auth/me`
+  endpoint, **only `refresh()` and `refreshSession()` change** — no consumer needs
+  to know.
 
 ---
 
@@ -965,36 +1083,93 @@ Dark mode via `next-themes`. Tailwind `darkMode: 'class'`. Always use semantic c
 
 ---
 
-## 18. Server Actions (`src/lib/actions/`)
+## 18. Actions (`src/lib/actions/`)
+
+Domain actions are **plain async functions** — no `"use server"` directive, no
+`revalidatePath`. They are thin wrappers over `src/lib/api/request.ts` called
+directly from client components. Cache invalidation is handled by
+`queryClient.invalidateQueries` in the component after the action resolves.
+
+**Why no `"use server"`:** The `accessToken` lives only in Zustand (in-memory,
+client-side). Server Actions run in Node.js where Zustand is empty, so the Axios
+request interceptor in `client.ts` has no token to attach — every mutation would
+go out unauthenticated. Keeping actions as plain client-callable functions lets the
+interceptor attach the token automatically on every request.
 
 ```typescript
-"use server";
 import { post, put, del } from "@/lib/api/request";
-import { revalidatePath } from "next/cache";
-import { ROUTES } from "@/lib/routes";
 import type { CreateBeamInput } from "@/lib/schemas/beam.schema";
 
 export async function createBeamAction(data: CreateBeamInput) {
-  const result = await post("/beams", data);
-  revalidatePath(ROUTES.BEAMS.LIST);
-  return result;
+  return post("/beams", data);
 }
 
 export async function updateBeamAction(
   id: string,
   data: Partial<CreateBeamInput>,
 ) {
-  const result = await put(`/beams/${id}`, data);
-  revalidatePath(ROUTES.BEAMS.LIST);
-  revalidatePath(ROUTES.BEAMS.DETAIL(id));
-  return result;
+  return put(`/beams/${id}`, data);
 }
 
 export async function deleteBeamAction(id: string) {
-  await del(`/beams/${id}`);
-  revalidatePath(ROUTES.BEAMS.LIST);
+  return del(`/beams/${id}`);
 }
 ```
+
+Cache invalidation lives in the component:
+
+```typescript
+await deleteBeamAction(id);
+await queryClient.invalidateQueries({ queryKey: ["beams"] });
+```
+
+### Auth server actions (`auth.actions.ts`)
+
+`loginAction` uses `loginRaw` to forward backend `Set-Cookie` headers (the
+`refreshToken`) to the browser, then composes the client session via `buildSession`:
+
+```typescript
+"use server";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { loginRaw, logout, buildSession } from "@/lib/api/auth";
+import { ROUTES } from "@/lib/routes";
+
+export async function loginAction(email: string, password: string) {
+  const { data, setCookieHeader } = await loginRaw(email, password);
+  if (setCookieHeader?.length) {
+    const cookieStore = await cookies();
+    for (const cookieStr of setCookieHeader) {
+      const { name, value, options } = parseSetCookieHeader(cookieStr);
+      cookieStore.set(name, value, options);
+    }
+  }
+  const session = await buildSession(data.user, data.accessToken);
+  return { success: true, ...session };
+}
+
+export async function logoutAction(): Promise<void> {
+  try {
+    await logout();
+  } catch {
+    // proceed with cookie cleanup even if the backend call fails
+  }
+  const cookieStore = await cookies();
+  cookieStore.delete("refreshToken");
+  redirect(ROUTES.LOGIN);
+}
+```
+
+**Logout rules:**
+
+- The server action — not the client — owns `refreshToken` cookie deletion.
+  The middleware reads that cookie to decide whether a route is public, so any
+  client-only `clear()` of Zustand without deleting the cookie leaves the user
+  trapped in a redirect loop.
+- The backend `/auth/logout` call is best-effort; cookie cleanup proceeds even
+  if it fails (network down, token already expired, etc.).
+- Header's `handleLogout` calls `clear()` on the Zustand store *and* awaits
+  `logoutAction()` — both are required.
 
 ---
 
@@ -1071,8 +1246,34 @@ The sidebar and dashboard should guide users through the correct setup order:
 
 **Layer 1 — middleware.ts:** checks `refreshToken` cookie, redirects to `ROUTES.LOGIN` if missing.
 
-**Layer 2 — `(dashboard)/layout.tsx`:** on hard refresh, Zustand is empty — calls `/auth/refresh`
-to restore session, fetches permissions. Shows skeleton while re-hydrating.
+**Layer 2 — `(dashboard)/layout.tsx`:** on hard refresh, Zustand is empty — calls
+`refreshSession()` from `src/lib/api/auth.ts` to restore the full session
+(user + token + permissions) in a single helper. Shows skeleton while re-hydrating.
+The `.catch` branch sets `isHydrating = false` *before* redirecting so the skeleton
+never sticks if the redirect is slow. A `cancelled` flag in cleanup avoids
+setting state on instances unmounted by React Strict Mode in dev.
+
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  const { user, setAuth } = useAuthStore.getState();
+  if (user) { setIsHydrating(false); return; }
+
+  refreshSession()
+    .then((session) => {
+      if (cancelled) return;
+      setAuth(session.user, session.accessToken, session.permissions);
+      setIsHydrating(false);
+    })
+    .catch(() => {
+      if (cancelled) return;
+      setIsHydrating(false);
+      router.push(ROUTES.LOGIN);
+    });
+
+  return () => { cancelled = true; };
+}, [router]);
+```
 
 **Layer 3 — `PermissionGate` + `SuperAdminGate`:** per-button and per-page permission checks.
 
@@ -1106,8 +1307,10 @@ export default function BeamsPage() {
     "react-dom": "19.x",
     "typescript": "5.x",
     "tailwindcss": "3.x",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.4.0",
     "next-themes": "latest",
-    "lucide-react": "1.14.0",
+    "lucide-react": "^0.475.0",
     "sonner": "2.0.7",
     "zustand": "5.x",
     "@tanstack/react-query": "5.x",
@@ -1121,17 +1324,19 @@ export default function BeamsPage() {
     "class-variance-authority": "latest",
     "react-day-picker": "9.14.0",
     "date-fns": "4.x",
-    "recharts": "3.7.0",
+    "recharts": "^2.15.4",
     "cmdk": "1.1.1",
     "vaul": "1.1.2",
-    "input-otp": "1.4.2"
+    "input-otp": "1.4.2",
+    "@radix-ui/react-collapsible": "^1.1.12"
   },
   "devDependencies": {
     "@playwright/test": "latest",
     "openapi-typescript": "latest",
     "@types/node": "latest",
     "@types/react": "19.x",
-    "@types/react-dom": "19.x"
+    "@types/react-dom": "19.x",
+    "shadcn": "^4.6.0"
   },
   "overrides": {
     "react-is": "^19.0.0"
@@ -1139,7 +1344,7 @@ export default function BeamsPage() {
 }
 ```
 
-> **`overrides` note:** recharts 3.x has a peer dep on `react-is` from React 18.
+> **`overrides` note:** recharts 2.x has a peer dep on `react-is` from React 18.
 > The override forces React 19's version — required when using recharts with React 19.
 
 ---
@@ -1252,14 +1457,20 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT install any toast/notification library other than `sonner`
 - Do NOT install any UI library other than `shadcn/ui`
 - Do NOT use `any` type in TypeScript
-- Do NOT call `apiClient` directly from components — use `src/lib/api/request.ts`
+- Do NOT call `apiClient` directly from components, layouts, or actions — use `src/lib/api/request.ts` for generic CRUD and `src/lib/api/auth.ts` for any auth flow
+- Do NOT add `"use server"` to domain action files (`firms.actions.ts`, `mills.actions.ts`, etc.) — actions must run client-side so the Axios interceptor can attach the `accessToken` from Zustand. Only `auth.actions.ts` uses `"use server"` (it needs `cookies()` to set the `refreshToken`)
+- Do NOT use `revalidatePath` in domain actions — use `queryClient.invalidateQueries` in the component after the action resolves
+- Do NOT duplicate auth flows (login, refresh, logout, permissions fetch) — every consumer composes from `src/lib/api/auth.ts`. New auth-related calls land there too
+- Do NOT call `/auth/refresh` directly from a layout or component — call `refreshSession()` so the user + permissions are rebuilt as a single `Session`
+- Do NOT delete the `refreshToken` cookie from client code — `logoutAction` owns it. Client code only calls `useAuthStore.getState().clear()` and awaits `logoutAction()`
 - Do NOT store `accessToken` in localStorage — Zustand memory only
 - Do NOT hardcode colour values — use semantic CSS variables via Tailwind classes
 - Do NOT skip `PermissionGate` on any action button or write operation
 - Do NOT use `toast.error(err)` directly — always use `showErrorToast(err)`
 - Do NOT create a second Axios instance
 - Do NOT use `useEffect` to fetch data — use TanStack Query or Server Components
-- Do NOT edit `src/types/api.d.ts` — it is auto-generated
+- Do NOT import directly from `src/types/api.d.ts` — always go through `src/types/app.ts`
+- Do NOT edit `src/types/api.d.ts` — it is auto-generated; run `npm run generate:types` to regenerate it
 - Do NOT edit files in `src/components/ui/` manually
 - Do NOT use native `<input type="date">` — always use `DatePickerField`
 - Do NOT hardcode route strings — always import from `@/lib/routes` and use `ROUTES`
