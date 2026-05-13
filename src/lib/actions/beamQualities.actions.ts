@@ -1,13 +1,9 @@
-"use server";
-
 import {
   createBeamQuality,
   updateBeamQuality,
   deleteBeamQuality,
 } from "@/lib/api/beamQualities";
 import type { BeamQuality } from "@/lib/api/beamQualities";
-import { revalidatePath } from "next/cache";
-import { ROUTES } from "@/lib/routes";
 import type {
   CreateBeamQualityInput,
   UpdateBeamQualityInput,
@@ -16,21 +12,16 @@ import type {
 export async function createBeamQualityAction(
   data: CreateBeamQualityInput,
 ): Promise<BeamQuality> {
-  const result = await createBeamQuality(data);
-  revalidatePath(ROUTES.BEAM_QUALITIES.LIST);
-  return result;
+  return createBeamQuality(data);
 }
 
 export async function updateBeamQualityAction(
   id: string,
   data: UpdateBeamQualityInput,
 ): Promise<BeamQuality> {
-  const result = await updateBeamQuality(id, data);
-  revalidatePath(ROUTES.BEAM_QUALITIES.LIST);
-  return result;
+  return updateBeamQuality(id, data);
 }
 
 export async function deleteBeamQualityAction(id: string): Promise<void> {
-  await deleteBeamQuality(id);
-  revalidatePath(ROUTES.BEAM_QUALITIES.LIST);
+  return deleteBeamQuality(id);
 }

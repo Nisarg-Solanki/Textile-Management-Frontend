@@ -548,6 +548,16 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Internal helper — only needed when calling from a server context that has a token
+// but no access to the Zustand interceptor (e.g. auth.actions.ts).
+// For all client-side calls the Axios interceptor in client.ts handles this automatically.
+function authHeader(
+  token?: string,
+): { headers: { Authorization: string } } | undefined {
+  if (token) return { headers: { Authorization: `Bearer ${token}` } };
+  return undefined;
+}
+
 export async function getList<T>(
   url: string,
   params?: Record<string, string | number | boolean | undefined>,
@@ -560,9 +570,9 @@ export async function getList<T>(
   }
 }
 
-export async function getOne<T>(url: string): Promise<T> {
+export async function getOne<T>(url: string, token?: string): Promise<T> {
   try {
-    const res = await apiClient.get<ApiResponse<T>>(url);
+    const res = await apiClient.get<ApiResponse<T>>(url, authHeader(token));
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -572,9 +582,14 @@ export async function getOne<T>(url: string): Promise<T> {
 export async function post<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.post<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.post<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -584,18 +599,23 @@ export async function post<TBody, TResponse>(
 export async function put<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.put<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.put<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
   }
 }
 
-export async function del(url: string): Promise<void> {
+export async function del(url: string, token?: string): Promise<void> {
   try {
-    await apiClient.delete(url);
+    await apiClient.delete(url, authHeader(token));
   } catch (err) {
     throw handleApiError(err);
   }
@@ -1063,39 +1083,44 @@ Dark mode via `next-themes`. Tailwind `darkMode: 'class'`. Always use semantic c
 
 ---
 
-## 18. Server Actions (`src/lib/actions/`)
+## 18. Actions (`src/lib/actions/`)
 
-Domain server actions consume `src/lib/api/request.ts` (`post`/`put`/`del`).
-Auth server actions (`auth.actions.ts`) consume `src/lib/api/auth.ts` instead —
-never reach into `apiClient` or duplicate the auth flow.
+Domain actions are **plain async functions** — no `"use server"` directive, no
+`revalidatePath`. They are thin wrappers over `src/lib/api/request.ts` called
+directly from client components. Cache invalidation is handled by
+`queryClient.invalidateQueries` in the component after the action resolves.
+
+**Why no `"use server"`:** The `accessToken` lives only in Zustand (in-memory,
+client-side). Server Actions run in Node.js where Zustand is empty, so the Axios
+request interceptor in `client.ts` has no token to attach — every mutation would
+go out unauthenticated. Keeping actions as plain client-callable functions lets the
+interceptor attach the token automatically on every request.
 
 ```typescript
-"use server";
 import { post, put, del } from "@/lib/api/request";
-import { revalidatePath } from "next/cache";
-import { ROUTES } from "@/lib/routes";
 import type { CreateBeamInput } from "@/lib/schemas/beam.schema";
 
 export async function createBeamAction(data: CreateBeamInput) {
-  const result = await post("/beams", data);
-  revalidatePath(ROUTES.BEAMS.LIST);
-  return result;
+  return post("/beams", data);
 }
 
 export async function updateBeamAction(
   id: string,
   data: Partial<CreateBeamInput>,
 ) {
-  const result = await put(`/beams/${id}`, data);
-  revalidatePath(ROUTES.BEAMS.LIST);
-  revalidatePath(ROUTES.BEAMS.DETAIL(id));
-  return result;
+  return put(`/beams/${id}`, data);
 }
 
 export async function deleteBeamAction(id: string) {
-  await del(`/beams/${id}`);
-  revalidatePath(ROUTES.BEAMS.LIST);
+  return del(`/beams/${id}`);
 }
+```
+
+Cache invalidation lives in the component:
+
+```typescript
+await deleteBeamAction(id);
+await queryClient.invalidateQueries({ queryKey: ["beams"] });
 ```
 
 ### Auth server actions (`auth.actions.ts`)
@@ -1432,7 +1457,9 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT install any toast/notification library other than `sonner`
 - Do NOT install any UI library other than `shadcn/ui`
 - Do NOT use `any` type in TypeScript
-- Do NOT call `apiClient` directly from components, layouts, or server actions — use `src/lib/api/request.ts` for generic CRUD and `src/lib/api/auth.ts` for any auth flow
+- Do NOT call `apiClient` directly from components, layouts, or actions — use `src/lib/api/request.ts` for generic CRUD and `src/lib/api/auth.ts` for any auth flow
+- Do NOT add `"use server"` to domain action files (`firms.actions.ts`, `mills.actions.ts`, etc.) — actions must run client-side so the Axios interceptor can attach the `accessToken` from Zustand. Only `auth.actions.ts` uses `"use server"` (it needs `cookies()` to set the `refreshToken`)
+- Do NOT use `revalidatePath` in domain actions — use `queryClient.invalidateQueries` in the component after the action resolves
 - Do NOT duplicate auth flows (login, refresh, logout, permissions fetch) — every consumer composes from `src/lib/api/auth.ts`. New auth-related calls land there too
 - Do NOT call `/auth/refresh` directly from a layout or component — call `refreshSession()` so the user + permissions are rebuilt as a single `Session`
 - Do NOT delete the `refreshToken` cookie from client code — `logoutAction` owns it. Client code only calls `useAuthStore.getState().clear()` and awaits `logoutAction()`

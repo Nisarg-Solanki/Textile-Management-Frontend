@@ -30,12 +30,16 @@ export async function getList<T>(
   }
 }
 
+function authHeader(
+  token?: string,
+): { headers: { Authorization: string } } | undefined {
+  if (token) return { headers: { Authorization: `Bearer ${token}` } };
+  return undefined;
+}
+
 export async function getOne<T>(url: string, token?: string): Promise<T> {
   try {
-    const config = token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined;
-    const res = await apiClient.get<ApiResponse<T>>(url, config);
+    const res = await apiClient.get<ApiResponse<T>>(url, authHeader(token));
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -45,9 +49,14 @@ export async function getOne<T>(url: string, token?: string): Promise<T> {
 export async function post<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.post<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.post<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
@@ -57,18 +66,23 @@ export async function post<TBody, TResponse>(
 export async function put<TBody, TResponse>(
   url: string,
   body: TBody,
+  token?: string,
 ): Promise<TResponse> {
   try {
-    const res = await apiClient.put<ApiResponse<TResponse>>(url, body);
+    const res = await apiClient.put<ApiResponse<TResponse>>(
+      url,
+      body,
+      authHeader(token),
+    );
     return res.data.data;
   } catch (err) {
     throw handleApiError(err);
   }
 }
 
-export async function del(url: string): Promise<void> {
+export async function del(url: string, token?: string): Promise<void> {
   try {
-    await apiClient.delete(url);
+    await apiClient.delete(url, authHeader(token));
   } catch (err) {
     throw handleApiError(err);
   }
