@@ -14,6 +14,12 @@ export type FirmListParams =
 export type CreateFirmBody =
   paths["/api/v1/firms"]["post"]["requestBody"]["content"]["application/json"];
 
+export type MillListParams =
+  paths["/api/v1/mills"]["get"]["parameters"]["query"];
+
+export type CreateMillBody =
+  paths["/api/v1/mills"]["post"]["requestBody"]["content"]["application/json"];
+
 // ─── Manual — response bodies are not in the OpenAPI spec ───────────────────
 
 export type AuthUser = {
@@ -31,6 +37,18 @@ export type Firm = {
   firmCode: string;
   challanEnable: boolean;
   srNoSeries: string | null;
+  address: string | null;
+  contactPerson: string | null;
+  contactNumber: string | null;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Mill = {
+  id: string;
+  millName: string;
+  millCode: string | null;
   address: string | null;
   contactPerson: string | null;
   contactNumber: string | null;
