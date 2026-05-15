@@ -2,14 +2,16 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Option = { value: string; label: string };
 
 type Props = {
   options: Option[];
+  isLoading?: boolean;
 };
 
-export function FirmFilter({ options }: Props) {
+export function FirmFilter({ options, isLoading }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const firmId = searchParams.get("firmId");
@@ -23,6 +25,16 @@ export function FirmFilter({ options }: Props) {
     }
     params.set("page", "1");
     router.push(`?${params.toString()}`);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-7 w-20 rounded-md" />
+        ))}
+      </div>
+    );
   }
 
   return (

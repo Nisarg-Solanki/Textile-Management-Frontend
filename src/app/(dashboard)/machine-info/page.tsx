@@ -12,7 +12,7 @@ import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { MachineStatusTable } from "@/components/modules/machine-info/MachineStatusTable";
 import { getMachineInfo } from "@/lib/api/machineInfo";
-import { getFirms } from "@/lib/api/firms";
+import { useFirms } from "@/lib/hooks/useFirms";
 
 const LIMIT = 20;
 
@@ -33,15 +33,7 @@ export default function MachineInfoPage() {
     refetchInterval: 30000,
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   function handleMachineNoChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -62,44 +54,48 @@ export default function MachineInfoPage() {
 
   return (
     <PermissionGate module="machine_info" action="view">
-      <PageHeader title="Machine Info">
+      <PageHeader
+        title="Machine Info"
+        filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
+      >
         <Button
+          size="sm"
           variant="outline"
           onClick={() =>
             queryClient.invalidateQueries({ queryKey: ["machine-info"] })
           }
         >
-          <RefreshCw className="size-4 mr-2" />
+          <RefreshCw className="size-4 mr-1.5" />
           Refresh
         </Button>
       </PageHeader>
 
       <div className="space-y-4">
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search machines..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Machine No
-              </span>
-              <Input
-                value={machine_no ?? ""}
-                onChange={(e) => handleMachineNoChange(e.target.value)}
-                placeholder="Filter by machine no"
-                className="w-48"
-              />
-            </div>
-          </div>
-        </FilterPanel>
-
         <MachineStatusTable
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search machines..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Machine No
+                    </span>
+                    <Input
+                      value={machine_no ?? ""}
+                      onChange={(e) => handleMachineNoChange(e.target.value)}
+                      placeholder="Filter by machine no"
+                      className="w-48"
+                    />
+                  </div>
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
     </PermissionGate>

@@ -153,43 +153,44 @@ export default function MillsPage() {
   return (
     <SuperAdminGate>
       <PageHeader title="Mills">
-        <Button onClick={() => router.push(ROUTES.MILLS.NEW)}>
-          <Plus className="mr-2 size-4" />
+        <Button size="sm" onClick={() => router.push(ROUTES.MILLS.NEW)}>
+          <Plus className="mr-1.5 size-4" />
           Add Mill
         </Button>
       </PageHeader>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search mills..." />
-          <FilterPanel>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Status
-              </span>
-              <Select
-                value={searchParams.get("status") ?? "all"}
-                onValueChange={handleStatusChange}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </FilterPanel>
-        </div>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search mills..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </span>
+                  <Select
+                    value={searchParams.get("status") ?? "all"}
+                    onValueChange={handleStatusChange}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
 

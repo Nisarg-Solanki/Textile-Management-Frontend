@@ -116,22 +116,23 @@ export default function BeamQualitiesPage() {
     <PermissionGate module="beam_qualities" action="view" fallback={<p className="text-muted-foreground">You do not have permission to view beam qualities.</p>}>
       <PageHeader title="Beam Qualities">
         <PermissionGate module="beam_qualities" action="create">
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 size-4" />
             Add Beam Quality
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <SearchBar placeholder="Search beam qualities..." />
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <SearchBar placeholder="Search beam qualities..." className="flex-1 min-w-[180px]" />
+          }
         />
       </div>
 

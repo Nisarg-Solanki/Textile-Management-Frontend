@@ -4,26 +4,30 @@ import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 
 type Props = {
-  title: string;
+  title?: string;
   children?: ReactNode;
   backHref?: string;
+  filter?: ReactNode;
 };
 
-export function PageHeader({ title, children, backHref }: Props) {
+export function PageHeader({ children, backHref, filter }: Props) {
+  if (!children && !backHref && !filter) return <div className="mb-6" />;
   return (
-    <div className="flex flex-row items-center justify-between border-b pb-4 mb-6">
-      <div className="flex items-center gap-2">
-        {backHref && (
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={backHref}>
-              <ChevronLeft className="size-4" />
-              <span className="sr-only">Go back</span>
-            </Link>
-          </Button>
-        )}
-        <h1 className="text-2xl font-bold">{title}</h1>
-      </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+    <div className="flex items-center gap-3 mb-6 min-w-0">
+      {backHref && (
+        <Button variant="ghost" size="icon" className="shrink-0" asChild>
+          <Link href={backHref}>
+            <ChevronLeft className="size-4" />
+            <span className="sr-only">Go back</span>
+          </Link>
+        </Button>
+      )}
+      {filter && (
+        <div className="flex-1 min-w-0 overflow-x-auto">{filter}</div>
+      )}
+      {children && (
+        <div className="flex items-center gap-2 shrink-0 ml-auto">{children}</div>
+      )}
     </div>
   );
 }

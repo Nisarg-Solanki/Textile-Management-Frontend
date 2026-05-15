@@ -13,7 +13,7 @@ import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { MillSummaryTable } from "@/components/modules/mill-summary/MillSummaryTable";
 import { getMillSummary } from "@/lib/api/millSummary";
-import { getFirms } from "@/lib/api/firms";
+import { useFirms } from "@/lib/hooks/useFirms";
 
 const LIMIT = 20;
 
@@ -67,15 +67,7 @@ export default function MillSummaryPage() {
       }),
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   function handleTabChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -92,42 +84,50 @@ export default function MillSummaryPage() {
 
   return (
     <PermissionGate module="mill_summary" action="view">
-      <PageHeader title="Mill Summary" />
+      <PageHeader
+        title="Mill Summary"
+        filter={
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <FirmFilter options={firmOptions} isLoading={firmsLoading} />
+            <Tabs value={status} onValueChange={handleTabChange}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="at_mill">At Mill</TabsTrigger>
+                <TabsTrigger value="returned">Returned</TabsTrigger>
+                <TabsTrigger value="not_sent">Not Sent</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        }
+      />
 
       <div className="space-y-4">
-        <Tabs value={status} onValueChange={handleTabChange}>
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="at_mill">At Mill</TabsTrigger>
-            <TabsTrigger value="returned">Returned</TabsTrigger>
-            <TabsTrigger value="not_sent">Not Sent</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search mill summary..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Mill
-              </span>
-              <Input
-                value={millInput}
-                onChange={(e) => setMillInput(e.target.value)}
-                placeholder="Filter by mill name"
-                className="w-48"
-              />
-            </div>
-            <DateRangeFilter />
-          </div>
-        </FilterPanel>
-
         <MillSummaryTable
           data={data?.data ?? []}
           isLoading={isLoading}
+          pagination={data?.pagination}
+          onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search mill summary..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Mill
+                    </span>
+                    <Input
+                      value={millInput}
+                      onChange={(e) => setMillInput(e.target.value)}
+                      placeholder="Filter by mill name"
+                      className="w-48"
+                    />
+                  </div>
+                  <DateRangeFilter />
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
     </PermissionGate>

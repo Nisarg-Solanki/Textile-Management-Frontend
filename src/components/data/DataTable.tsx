@@ -14,6 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import {
   Table,
@@ -51,6 +52,7 @@ type Props<T> = {
   onPageChange?: (page: number) => void;
   caption?: string;
   getRowClassName?: (row: Row<T>) => string;
+  toolbar?: ReactNode;
 };
 
 function getColumnLabel<T>(col: Column<T, unknown>): string {
@@ -72,6 +74,7 @@ export function DataTable<T>({
   onPageChange,
   caption,
   getRowClassName,
+  toolbar,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -96,34 +99,43 @@ export function DataTable<T>({
     (_, i) => i,
   );
 
+  const columnsDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 shrink-0">
+          <Columns className="size-4" />
+          Columns
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {table
+          .getAllColumns()
+          .filter((col) => col.getCanHide())
+          .map((col) => (
+            <DropdownMenuCheckboxItem
+              key={col.id}
+              checked={col.getIsVisible()}
+              onCheckedChange={(checked) => col.toggleVisibility(checked)}
+            >
+              {getColumnLabel(col)}
+            </DropdownMenuCheckboxItem>
+          ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Column visibility toggle */}
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Columns className="size-4" />
-              Columns
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {table
-              .getAllColumns()
-              .filter((col) => col.getCanHide())
-              .map((col) => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={(checked) => col.toggleVisibility(checked)}
-                >
-                  {getColumnLabel(col)}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Toolbar: search/filters on the left, columns toggle on the right */}
+      <div className="flex flex-wrap items-center gap-3">
+        {toolbar && (
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+            {toolbar}
+          </div>
+        )}
+        <div className={cn(!toolbar && "ml-auto")}>{columnsDropdown}</div>
       </div>
 
       {/* Mobile: stacked cards — hidden at md+ */}

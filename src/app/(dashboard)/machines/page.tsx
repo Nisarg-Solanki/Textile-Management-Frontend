@@ -22,7 +22,8 @@ import { FilterPanel } from "@/components/data/FilterPanel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { getMachines } from "@/lib/api/machines";
-import { getFirms } from "@/lib/api/firms";
+import { useFirms } from "@/lib/hooks/useFirms";
+import { FirmFilter } from "@/components/data/FirmFilter";
 import { deleteMachineAction } from "@/lib/actions/machines.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
 import { ROUTES } from "@/lib/routes";
@@ -53,15 +54,7 @@ export default function MachinesPage() {
     queryFn: () => getMachines({ search, status, firmId, page, limit: LIMIT }),
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -75,17 +68,6 @@ export default function MachinesPage() {
       params.delete("status");
     } else {
       params.set("status", value);
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleFirmChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("firmId");
-    } else {
-      params.set("firmId", value);
     }
     params.set("page", "1");
     router.push(`?${params.toString()}`);
@@ -192,69 +174,52 @@ export default function MachinesPage() {
 
   return (
     <PermissionGate module="machines" action="view">
-      <PageHeader title="Machines">
+      <PageHeader
+        title="Machines"
+        filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
+      >
         <PermissionGate module="machines" action="create">
-          <Button onClick={() => router.push(ROUTES.MACHINES.NEW)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => router.push(ROUTES.MACHINES.NEW)}>
+            <Plus className="mr-1.5 size-4" />
             Add Machine
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search machines..." />
-          <FilterPanel>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Status
-                </span>
-                <Select
-                  value={searchParams.get("status") ?? "all"}
-                  onValueChange={handleStatusChange}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Firm
-                </span>
-                <Select
-                  value={searchParams.get("firmId") ?? "all"}
-                  onValueChange={handleFirmChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Firms</SelectItem>
-                    {firmOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </FilterPanel>
-        </div>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search machines..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Status
+                    </span>
+                    <Select
+                      value={searchParams.get("status") ?? "all"}
+                      onValueChange={handleStatusChange}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
 

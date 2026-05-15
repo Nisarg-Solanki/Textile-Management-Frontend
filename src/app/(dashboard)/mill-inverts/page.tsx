@@ -23,8 +23,7 @@ import { PermissionGate } from "@/components/modules/PermissionGate";
 import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { getMillInverts } from "@/lib/api/millInverts";
-import { getFirms } from "@/lib/api/firms";
-import { getMills } from "@/lib/api/mills";
+import { useFirms } from "@/lib/hooks/useFirms";
 import { deleteMillInvertAction } from "@/lib/actions/millInverts.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
 import { formatDate } from "@/lib/utils/formatDate";
@@ -70,25 +69,15 @@ export default function MillInvertsPage() {
       }),
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const { data: millsData } = useQuery({
-    queryKey: ["mills-active"],
-    queryFn: () => getMills({ status: "active", limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
-
-  const millOptions = (millsData?.data ?? []).map((m) => ({
-    value: m.id,
-    label: m.millName,
-  }));
+  const millOptions = Array.from(
+    new Map(
+      (data?.data ?? [])
+        .filter((mi) => mi.mill)
+        .map((mi) => [mi.millId, { id: mi.millId, millName: mi.mill!.millName }])
+    ).values()
+  ).map((m) => ({ value: m.id, label: m.millName }));
 
   const deleteRecord = data?.data.find((r) => r.id === deleteId);
 
@@ -205,53 +194,56 @@ export default function MillInvertsPage() {
 
   return (
     <PermissionGate module="mill_inverts" action="view">
-      <PageHeader title="Mill Inverts">
+      <PageHeader
+        title="Mill Inverts"
+        filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
+      >
         <PermissionGate module="mill_inverts" action="create">
-          <Button onClick={() => router.push(ROUTES.MILL_INVERTS.NEW)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => router.push(ROUTES.MILL_INVERTS.NEW)}>
+            <Plus className="mr-1.5 size-4" />
             Add Mill Invert
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search mill inverts..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Mill
-              </span>
-              <Select
-                value={searchParams.get("millId") ?? "all"}
-                onValueChange={handleMillChange}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Mills</SelectItem>
-                  {millOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DateRangeFilter />
-          </div>
-        </FilterPanel>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search mill inverts..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Mill
+                    </span>
+                    <Select
+                      value={searchParams.get("millId") ?? "all"}
+                      onValueChange={handleMillChange}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Mills</SelectItem>
+                        {millOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DateRangeFilter />
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
 

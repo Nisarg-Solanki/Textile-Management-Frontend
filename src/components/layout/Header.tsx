@@ -1,18 +1,8 @@
 "use client";
 
-import { Fragment } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Sun, Moon, LogOut } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,7 +14,6 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/store/authStore";
-import { ROUTES } from "@/lib/routes";
 import { logoutAction } from "@/lib/actions/auth.actions";
 
 function formatSegment(segment: string): string {
@@ -34,13 +23,19 @@ function formatSegment(segment: string): string {
     .join(" ");
 }
 
+function isUuid(segment: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+}
+
 export function Header() {
   const pathname = usePathname();
-  // const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, clear } = useAuthStore();
 
   const segments = pathname.split("/").filter(Boolean);
+  const pageTitle =
+    segments.filter((s) => !isUuid(s)).map(formatSegment).join(" / ") ||
+    "Dashboard";
 
   async function handleLogout() {
     clear();
@@ -56,35 +51,7 @@ export function Header() {
 
   return (
     <header className="flex flex-row items-center justify-between border-b px-6 h-14">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={ROUTES.DASHBOARD}>Dashboard</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {segments.map((segment, index) => {
-            const href = "/" + segments.slice(0, index + 1).join("/");
-            const isLast = index === segments.length - 1;
-            const label = formatSegment(segment);
-
-            return (
-              <Fragment key={href}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage>{label}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link href={href}>{label}</Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </Fragment>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
+      <h1 className="text-lg font-semibold">{pageTitle}</h1>
 
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={toggleTheme}>

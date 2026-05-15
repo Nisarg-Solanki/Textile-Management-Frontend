@@ -138,59 +138,59 @@ export default function TakasPage() {
 
   return (
     <PermissionGate module="takas" action="view">
-      <PageHeader title="Takas" />
+      <PageHeader title="Takas" filter={<FirmFilter options={firmOptions} />} />
 
       <div className="space-y-4">
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search takas..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Beam No
-              </span>
-              <Input
-                className="w-36"
-                placeholder="e.g. B001"
-                defaultValue={searchParams.get("beam_no") ?? ""}
-                onBlur={(e) => handleBeamNoChange(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Min Meter
-              </span>
-              <Input
-                type="number"
-                className="w-28"
-                placeholder="0"
-                defaultValue={searchParams.get("meter_min") ?? ""}
-                onBlur={(e) => handleMeterMinChange(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Max Meter
-              </span>
-              <Input
-                type="number"
-                className="w-28"
-                placeholder="∞"
-                defaultValue={searchParams.get("meter_max") ?? ""}
-                onBlur={(e) => handleMeterMaxChange(e.target.value)}
-              />
-            </div>
-          </div>
-        </FilterPanel>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search takas..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Beam No
+                    </span>
+                    <Input
+                      className="w-36"
+                      placeholder="e.g. B001"
+                      defaultValue={searchParams.get("beam_no") ?? ""}
+                      onBlur={(e) => handleBeamNoChange(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Min Meter
+                    </span>
+                    <Input
+                      type="number"
+                      className="w-28"
+                      placeholder="0"
+                      defaultValue={searchParams.get("meter_min") ?? ""}
+                      onBlur={(e) => handleMeterMinChange(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Max Meter
+                    </span>
+                    <Input
+                      type="number"
+                      className="w-28"
+                      placeholder="∞"
+                      defaultValue={searchParams.get("meter_max") ?? ""}
+                      onBlur={(e) => handleMeterMaxChange(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
     </PermissionGate>

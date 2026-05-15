@@ -1,17 +1,21 @@
 import { getList, type PaginatedResponse } from "@/lib/api/request";
 
 export type MillSummaryRow = {
+  id: string;
   takaSrNo: string;
-  beamNo: string;
-  firmId: string;
-  firmName: string;
-  millOutvertId?: string;
-  outvertDate?: string;
-  millName?: string;
-  millInvertId?: string;
-  invertDate?: string;
+  millOutvertDate?: string;
   millChallanNo?: string;
-  status: "not_sent" | "at_mill" | "returned";
+  millName?: string;
+  millOutvertId?: string;
+  millInvertId?: string;
+  millOutvert?: {
+    outvertDate: string;
+    firmChallanNo?: string;
+  };
+  millInvert?: {
+    invertDate: string;
+    millChallanNo?: string;
+  };
 };
 
 export function getMillSummary(params?: {

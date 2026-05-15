@@ -23,8 +23,7 @@ import { FirmFilter } from "@/components/data/FirmFilter";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { getBeams } from "@/lib/api/beams";
-import { getFirms } from "@/lib/api/firms";
-import { getBeamQualities } from "@/lib/api/beamQualities";
+import { useFirms } from "@/lib/hooks/useFirms";
 import { deleteBeamAction } from "@/lib/actions/beams.actions";
 import { ApiError, showErrorToast } from "@/lib/utils/handleError";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
@@ -56,25 +55,15 @@ export default function BeamsPage() {
       getBeams({ search, qualityId, firmId, meter_min, meter_max, page, limit: LIMIT }),
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const { data: qualitiesData } = useQuery({
-    queryKey: ["beam-qualities-all"],
-    queryFn: () => getBeamQualities({ limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
-
-  const qualityOptions = (qualitiesData?.data ?? []).map((q) => ({
-    value: q.id,
-    label: q.name,
-  }));
+  const qualityOptions = Array.from(
+    new Map(
+      (data?.data ?? [])
+        .filter((b) => b.beamQuality)
+        .map((b) => [b.beamQuality!.id, b.beamQuality!])
+    ).values()
+  ).map((q) => ({ value: q.id, label: q.name }));
 
   const deleteBeam = data?.data.find((b) => b.id === deleteId);
 
@@ -214,76 +203,79 @@ export default function BeamsPage() {
 
   return (
     <PermissionGate module="beams" action="view">
-      <PageHeader title="Beams">
+      <PageHeader
+        title="Beams"
+        filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
+      >
         <PermissionGate module="beams" action="create">
-          <Button onClick={() => router.push(ROUTES.BEAMS.NEW)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => router.push(ROUTES.BEAMS.NEW)}>
+            <Plus className="mr-1.5 size-4" />
             Add Beam
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search beams..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Quality
-              </span>
-              <Select
-                value={searchParams.get("qualityId") ?? "all"}
-                onValueChange={handleQualityChange}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Qualities</SelectItem>
-                  {qualityOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Min Meter
-              </span>
-              <Input
-                type="number"
-                className="w-28"
-                placeholder="0"
-                defaultValue={searchParams.get("meter_min") ?? ""}
-                onBlur={(e) => handleMeterMinChange(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Max Meter
-              </span>
-              <Input
-                type="number"
-                className="w-28"
-                placeholder="∞"
-                defaultValue={searchParams.get("meter_max") ?? ""}
-                onBlur={(e) => handleMeterMaxChange(e.target.value)}
-              />
-            </div>
-          </div>
-        </FilterPanel>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search beams..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Quality
+                    </span>
+                    <Select
+                      value={searchParams.get("qualityId") ?? "all"}
+                      onValueChange={handleQualityChange}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Qualities</SelectItem>
+                        {qualityOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Min Meter
+                    </span>
+                    <Input
+                      type="number"
+                      className="w-28"
+                      placeholder="0"
+                      defaultValue={searchParams.get("meter_min") ?? ""}
+                      onBlur={(e) => handleMeterMinChange(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Max Meter
+                    </span>
+                    <Input
+                      type="number"
+                      className="w-28"
+                      placeholder="∞"
+                      defaultValue={searchParams.get("meter_max") ?? ""}
+                      onBlur={(e) => handleMeterMaxChange(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
 

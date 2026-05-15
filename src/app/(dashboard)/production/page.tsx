@@ -24,8 +24,7 @@ import { PermissionGate } from "@/components/modules/PermissionGate";
 import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { getProductions } from "@/lib/api/production";
-import { getFirms } from "@/lib/api/firms";
-import { getProductionQualities } from "@/lib/api/productionQualities";
+import { useFirms } from "@/lib/hooks/useFirms";
 import { deleteProductionAction } from "@/lib/actions/production.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
 import { formatDate } from "@/lib/utils/formatDate";
@@ -56,25 +55,15 @@ export default function ProductionPage() {
       getProductions({ search, qualityId, firmId, date_from, date_to, page, limit: LIMIT }),
   });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const { data: qualitiesData } = useQuery({
-    queryKey: ["production-qualities-all"],
-    queryFn: () => getProductionQualities({ limit: 100 }),
-  });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
-
-  const qualityOptions = (qualitiesData?.data ?? []).map((q) => ({
-    value: q.id,
-    label: q.name,
-  }));
+  const qualityOptions = Array.from(
+    new Map(
+      (data?.data ?? [])
+        .filter((p) => p.productionQuality)
+        .map((p) => [p.productionQuality!.id, p.productionQuality!])
+    ).values()
+  ).map((q) => ({ value: q.id, label: q.name }));
 
   const deleteRecord = data?.data.find((r) => r.id === deleteId);
 
@@ -211,53 +200,56 @@ export default function ProductionPage() {
 
   return (
     <PermissionGate module="production" action="view">
-      <PageHeader title="Production">
+      <PageHeader
+        title="Production"
+        filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
+      >
         <PermissionGate module="production" action="create">
-          <Button onClick={() => router.push(ROUTES.PRODUCTION.NEW)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => router.push(ROUTES.PRODUCTION.NEW)}>
+            <Plus className="mr-1.5 size-4" />
             Add Production
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <FirmFilter options={firmOptions} />
-        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
-          <SearchBar placeholder="Search production..." className="flex-1 max-w-none" />
-        </div>
-        <FilterPanel>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                Quality
-              </span>
-              <Select
-                value={searchParams.get("qualityId") ?? "all"}
-                onValueChange={handleQualityChange}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Qualities</SelectItem>
-                  {qualityOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DateRangeFilter />
-          </div>
-        </FilterPanel>
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <>
+              <SearchBar placeholder="Search production..." className="flex-1 min-w-[180px]" />
+              <FilterPanel>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Quality
+                    </span>
+                    <Select
+                      value={searchParams.get("qualityId") ?? "all"}
+                      onValueChange={handleQualityChange}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Qualities</SelectItem>
+                        {qualityOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DateRangeFilter />
+                </div>
+              </FilterPanel>
+            </>
+          }
         />
       </div>
 

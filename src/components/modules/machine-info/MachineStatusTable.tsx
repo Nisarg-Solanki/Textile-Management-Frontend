@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
+import type { ReactNode } from "react";
 import { DataTable } from "@/components/data/DataTable";
 import { formatDate } from "@/lib/utils/formatDate";
+import { formatDecimal } from "@/lib/utils/formatDecimal";
 import type { MachineInfoRow } from "@/lib/api/machineInfo";
 
 type PaginationInfo = {
@@ -17,6 +18,7 @@ type PaginationInfo = {
 type Props = {
   data: MachineInfoRow[];
   isLoading?: boolean;
+  toolbar?: ReactNode;
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
 };
@@ -24,48 +26,40 @@ type Props = {
 export function MachineStatusTable({
   data,
   isLoading,
+  toolbar,
   pagination,
   onPageChange,
 }: Props) {
   const columns = useMemo<ColumnDef<MachineInfoRow>[]>(
     () => [
       {
-        accessorKey: "machineNo",
+        id: "machineNo",
         header: "Machine No",
+        cell: ({ row }) => row.original.machine.machineNo,
       },
       {
-        id: "machineType",
-        header: "Machine Type",
-        cell: ({ row }) => row.original.machineType ?? "—",
-      },
-      {
-        accessorKey: "firmName",
+        id: "firm",
         header: "Firm",
+        cell: ({ row }) => row.original.machine.firm.firmName,
       },
       {
-        id: "latestTakaSrNo",
-        header: "Latest Taka Sr No",
-        cell: ({ row }) => row.original.latestTakaSrNo ?? "—",
+        id: "beamNo",
+        header: "Beam No",
+        cell: ({ row }) => row.original.beam.beamNo,
       },
       {
-        id: "latestEntryDate",
-        header: "Latest Entry Date",
-        cell: ({ row }) =>
-          row.original.latestEntryDate
-            ? formatDate(row.original.latestEntryDate)
-            : "—",
+        accessorKey: "takaSrNo",
+        header: "Taka Sr No",
       },
       {
-        id: "status",
-        header: "Status",
-        cell: ({ row }) => {
-          const active = row.original.status === "active";
-          return (
-            <Badge variant={active ? "default" : "secondary"}>
-              {active ? "Active" : "Inactive"}
-            </Badge>
-          );
-        },
+        id: "takaMeter",
+        header: "Taka Meter",
+        cell: ({ row }) => formatDecimal(row.original.takaMeter),
+      },
+      {
+        id: "entryDate",
+        header: "Entry Date",
+        cell: ({ row }) => formatDate(row.original.entryDate),
       },
     ],
     [],
@@ -76,6 +70,7 @@ export function MachineStatusTable({
       columns={columns}
       data={data}
       isLoading={isLoading}
+      toolbar={toolbar}
       pagination={pagination}
       onPageChange={onPageChange}
     />
