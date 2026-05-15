@@ -97,10 +97,12 @@ export function Sidebar() {
     <TooltipProvider delayDuration={0}>
       <aside className="hidden md:flex flex-col border-r bg-card md:w-16 lg:w-64 h-screen sticky top-0 shrink-0">
         <div className="flex items-center h-14 border-b px-3 shrink-0 md:justify-center lg:justify-start">
-          <span className="hidden lg:block text-sm font-bold tracking-tight">
-            Textile MS
-          </span>
-          <span className="lg:hidden text-sm font-bold">T</span>
+          <Link href={ROUTES.HOME} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <span className="hidden lg:block text-sm font-bold tracking-tight">
+              Textile MS
+            </span>
+            <span className="lg:hidden text-sm font-bold">T</span>
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-1">
