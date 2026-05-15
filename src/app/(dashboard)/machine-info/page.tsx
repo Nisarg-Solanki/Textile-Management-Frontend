@@ -5,16 +5,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
+import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { MachineStatusTable } from "@/components/modules/machine-info/MachineStatusTable";
 import { getMachineInfo } from "@/lib/api/machineInfo";
@@ -60,17 +54,6 @@ export default function MachineInfoPage() {
     router.push(`?${params.toString()}`);
   }
 
-  function handleFirmChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("firmId");
-    } else {
-      params.set("firmId", value);
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(newPage));
@@ -92,45 +75,25 @@ export default function MachineInfoPage() {
       </PageHeader>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search machines..." />
-          <FilterPanel>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Machine No
-                </span>
-                <Input
-                  value={machine_no ?? ""}
-                  onChange={(e) => handleMachineNoChange(e.target.value)}
-                  placeholder="Filter by machine no"
-                  className="w-48"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Firm
-                </span>
-                <Select
-                  value={searchParams.get("firmId") ?? "all"}
-                  onValueChange={handleFirmChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Firms</SelectItem>
-                    {firmOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </FilterPanel>
+        <FirmFilter options={firmOptions} />
+        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <SearchBar placeholder="Search machines..." className="flex-1 max-w-none" />
         </div>
+        <FilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Machine No
+              </span>
+              <Input
+                value={machine_no ?? ""}
+                onChange={(e) => handleMachineNoChange(e.target.value)}
+                placeholder="Filter by machine no"
+                className="w-48"
+              />
+            </div>
+          </div>
+        </FilterPanel>
 
         <MachineStatusTable
           data={data?.data ?? []}

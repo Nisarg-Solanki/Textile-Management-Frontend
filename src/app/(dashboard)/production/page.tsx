@@ -15,14 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
-import { DatePickerField } from "@/components/forms/DatePickerField";
+import { DateRangeFilter } from "@/components/data/DateRangeFilter";
+import { FirmFilter } from "@/components/data/FirmFilter";
 import { getProductions } from "@/lib/api/production";
 import { getFirms } from "@/lib/api/firms";
 import { getProductionQualities } from "@/lib/api/productionQualities";
@@ -90,39 +90,6 @@ export default function ProductionPage() {
       params.delete("qualityId");
     } else {
       params.set("qualityId", value);
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleFirmChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("firmId");
-    } else {
-      params.set("firmId", value);
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleDateFromChange(date: Date | undefined) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (date) {
-      params.set("date_from", date.toISOString());
-    } else {
-      params.delete("date_from");
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleDateToChange(date: Date | undefined) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (date) {
-      params.set("date_to", date.toISOString());
-    } else {
-      params.delete("date_to");
     }
     params.set("page", "1");
     router.push(`?${params.toString()}`);
@@ -254,75 +221,36 @@ export default function ProductionPage() {
       </PageHeader>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search production..." />
-          <FilterPanel>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Quality
-                </span>
-                <Select
-                  value={searchParams.get("qualityId") ?? "all"}
-                  onValueChange={handleQualityChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Qualities</SelectItem>
-                    {qualityOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Firm
-                </span>
-                <Select
-                  value={searchParams.get("firmId") ?? "all"}
-                  onValueChange={handleFirmChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Firms</SelectItem>
-                    {firmOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  From
-                </Label>
-                <DatePickerField
-                  value={date_from ? new Date(date_from) : undefined}
-                  onChange={handleDateFromChange}
-                  placeholder="From date"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  To
-                </Label>
-                <DatePickerField
-                  value={date_to ? new Date(date_to) : undefined}
-                  onChange={handleDateToChange}
-                  placeholder="To date"
-                />
-              </div>
-            </div>
-          </FilterPanel>
+        <FirmFilter options={firmOptions} />
+        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <SearchBar placeholder="Search production..." className="flex-1 max-w-none" />
         </div>
+        <FilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Quality
+              </span>
+              <Select
+                value={searchParams.get("qualityId") ?? "all"}
+                onValueChange={handleQualityChange}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Qualities</SelectItem>
+                  {qualityOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DateRangeFilter />
+          </div>
+        </FilterPanel>
 
         <DataTable
           columns={columns}

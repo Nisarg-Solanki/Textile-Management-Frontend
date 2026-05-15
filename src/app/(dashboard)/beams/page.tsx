@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
+import { FirmFilter } from "@/components/data/FirmFilter";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { getBeams } from "@/lib/api/beams";
@@ -80,17 +81,6 @@ export default function BeamsPage() {
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleFirmChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("firmId");
-    } else {
-      params.set("firmId", value);
-    }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -234,79 +224,59 @@ export default function BeamsPage() {
       </PageHeader>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search beams..." />
-          <FilterPanel>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Quality
-                </span>
-                <Select
-                  value={searchParams.get("qualityId") ?? "all"}
-                  onValueChange={handleQualityChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Qualities</SelectItem>
-                    {qualityOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Firm
-                </span>
-                <Select
-                  value={searchParams.get("firmId") ?? "all"}
-                  onValueChange={handleFirmChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Firms</SelectItem>
-                    {firmOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Min Meter
-                </span>
-                <Input
-                  type="number"
-                  className="w-28"
-                  placeholder="0"
-                  defaultValue={searchParams.get("meter_min") ?? ""}
-                  onBlur={(e) => handleMeterMinChange(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Max Meter
-                </span>
-                <Input
-                  type="number"
-                  className="w-28"
-                  placeholder="∞"
-                  defaultValue={searchParams.get("meter_max") ?? ""}
-                  onBlur={(e) => handleMeterMaxChange(e.target.value)}
-                />
-              </div>
-            </div>
-          </FilterPanel>
+        <FirmFilter options={firmOptions} />
+        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <SearchBar placeholder="Search beams..." className="flex-1 max-w-none" />
         </div>
+        <FilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Quality
+              </span>
+              <Select
+                value={searchParams.get("qualityId") ?? "all"}
+                onValueChange={handleQualityChange}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Qualities</SelectItem>
+                  {qualityOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Min Meter
+              </span>
+              <Input
+                type="number"
+                className="w-28"
+                placeholder="0"
+                defaultValue={searchParams.get("meter_min") ?? ""}
+                onBlur={(e) => handleMeterMinChange(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Max Meter
+              </span>
+              <Input
+                type="number"
+                className="w-28"
+                placeholder="∞"
+                defaultValue={searchParams.get("meter_max") ?? ""}
+                onBlur={(e) => handleMeterMaxChange(e.target.value)}
+              />
+            </div>
+          </div>
+        </FilterPanel>
 
         <DataTable
           columns={columns}

@@ -7,17 +7,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
+import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { getTakas } from "@/lib/api/takas";
 import { getFirms } from "@/lib/api/firms";
@@ -60,17 +54,6 @@ export default function TakasPage() {
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleFirmChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("firmId");
-    } else {
-      params.set("firmId", value);
-    }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -158,69 +141,49 @@ export default function TakasPage() {
       <PageHeader title="Takas" />
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchBar placeholder="Search takas..." />
-          <FilterPanel>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Beam No
-                </span>
-                <Input
-                  className="w-36"
-                  placeholder="e.g. B001"
-                  defaultValue={searchParams.get("beam_no") ?? ""}
-                  onBlur={(e) => handleBeamNoChange(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Min Meter
-                </span>
-                <Input
-                  type="number"
-                  className="w-28"
-                  placeholder="0"
-                  defaultValue={searchParams.get("meter_min") ?? ""}
-                  onBlur={(e) => handleMeterMinChange(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Max Meter
-                </span>
-                <Input
-                  type="number"
-                  className="w-28"
-                  placeholder="∞"
-                  defaultValue={searchParams.get("meter_max") ?? ""}
-                  onBlur={(e) => handleMeterMaxChange(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Firm
-                </span>
-                <Select
-                  value={searchParams.get("firmId") ?? "all"}
-                  onValueChange={handleFirmChange}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Firms</SelectItem>
-                    {firmOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </FilterPanel>
+        <FirmFilter options={firmOptions} />
+        <div className="flex flex-col sm:flex-row gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <SearchBar placeholder="Search takas..." className="flex-1 max-w-none" />
         </div>
+        <FilterPanel>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Beam No
+              </span>
+              <Input
+                className="w-36"
+                placeholder="e.g. B001"
+                defaultValue={searchParams.get("beam_no") ?? ""}
+                onBlur={(e) => handleBeamNoChange(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Min Meter
+              </span>
+              <Input
+                type="number"
+                className="w-28"
+                placeholder="0"
+                defaultValue={searchParams.get("meter_min") ?? ""}
+                onBlur={(e) => handleMeterMinChange(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Max Meter
+              </span>
+              <Input
+                type="number"
+                className="w-28"
+                placeholder="∞"
+                defaultValue={searchParams.get("meter_max") ?? ""}
+                onBlur={(e) => handleMeterMaxChange(e.target.value)}
+              />
+            </div>
+          </div>
+        </FilterPanel>
 
         <DataTable
           columns={columns}
