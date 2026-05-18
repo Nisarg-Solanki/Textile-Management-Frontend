@@ -116,22 +116,23 @@ export default function ProductionQualitiesPage() {
     <PermissionGate module="production_qualities" action="view" fallback={<p className="text-muted-foreground">You do not have permission to view production qualities.</p>}>
       <PageHeader title="Production Qualities">
         <PermissionGate module="production_qualities" action="create">
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 size-4" />
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 size-4" />
             Add Production Quality
           </Button>
         </PermissionGate>
       </PageHeader>
 
       <div className="space-y-4">
-        <SearchBar placeholder="Search production qualities..." />
-
         <DataTable
           columns={columns}
           data={data?.data ?? []}
           isLoading={isLoading}
           pagination={data?.pagination}
           onPageChange={handlePageChange}
+          toolbar={
+            <SearchBar placeholder="Search production qualities..." className="flex-1 min-w-[180px]" />
+          }
         />
       </div>
 

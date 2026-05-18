@@ -7,7 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -19,20 +19,22 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
-import { FirmFilter } from "@/components/data/FirmFilter";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
-import { getBeams } from "@/lib/api/beams";
+import { DateRangeFilter } from "@/components/data/DateRangeFilter";
+import { FirmFilter } from "@/components/data/FirmFilter";
+import { getProductions } from "@/lib/api/production";
 import { useFirms } from "@/lib/hooks/useFirms";
-import { deleteBeamAction } from "@/lib/actions/beams.actions";
-import { ApiError, showErrorToast } from "@/lib/utils/handleError";
+import { deleteProductionAction } from "@/lib/actions/production.actions";
+import { showErrorToast } from "@/lib/utils/handleError";
+import { formatDate } from "@/lib/utils/formatDate";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { ROUTES } from "@/lib/routes";
-import type { Beam } from "@/lib/api/beams";
+import type { ProductionInfo } from "@/lib/api/production";
 
 const LIMIT = 20;
 
-export default function BeamsPage() {
+export default function ProductionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -40,19 +42,17 @@ export default function BeamsPage() {
   const search = searchParams.get("search") ?? undefined;
   const qualityId = searchParams.get("qualityId") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
-  const meterMinRaw = searchParams.get("meter_min");
-  const meterMaxRaw = searchParams.get("meter_max");
-  const meter_min = meterMinRaw ? Number(meterMinRaw) : undefined;
-  const meter_max = meterMaxRaw ? Number(meterMaxRaw) : undefined;
+  const date_from = searchParams.get("date_from") ?? undefined;
+  const date_to = searchParams.get("date_to") ?? undefined;
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["beams", search, qualityId, firmId, meter_min, meter_max, page],
+    queryKey: ["production", search, qualityId, firmId, date_from, date_to, page],
     queryFn: () =>
-      getBeams({ search, qualityId, firmId, meter_min, meter_max, page, limit: LIMIT }),
+      getProductions({ search, qualityId, firmId, date_from, date_to, page, limit: LIMIT }),
   });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
@@ -60,12 +60,12 @@ export default function BeamsPage() {
   const qualityOptions = Array.from(
     new Map(
       (data?.data ?? [])
-        .filter((b) => b.beamQuality)
-        .map((b) => [b.beamQuality!.id, b.beamQuality!])
+        .filter((p) => p.productionQuality)
+        .map((p) => [p.productionQuality!.id, p.productionQuality!])
     ).values()
   ).map((q) => ({ value: q.id, label: q.name }));
 
-  const deleteBeam = data?.data.find((b) => b.id === deleteId);
+  const deleteRecord = data?.data.find((r) => r.id === deleteId);
 
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -84,75 +84,74 @@ export default function BeamsPage() {
     router.push(`?${params.toString()}`);
   }
 
-  function handleMeterMinChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set("meter_min", value);
-    } else {
-      params.delete("meter_min");
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handleMeterMaxChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set("meter_max", value);
-    } else {
-      params.delete("meter_max");
-    }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
   async function handleDelete() {
     if (!deleteId) return;
     setIsDeleting(true);
     try {
-      await deleteBeamAction(deleteId);
-      toast.success("Beam deleted");
-      await queryClient.invalidateQueries({ queryKey: ["beams"] });
+      await deleteProductionAction(deleteId);
+      toast.success("Production record deleted");
+      await queryClient.invalidateQueries({ queryKey: ["production"] });
       setDeleteId(null);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "BEAM_IN_USE") {
-        toast.error("Cannot delete — production records are linked to this beam");
-      } else {
-        showErrorToast(err);
-      }
+      showErrorToast(err);
     } finally {
       setIsDeleting(false);
     }
   }
 
-  const columns = useMemo<ColumnDef<Beam>[]>(
+  const columns = useMemo<ColumnDef<ProductionInfo>[]>(
     () => [
       {
-        accessorKey: "beamNo",
-        header: "Beam No",
+        id: "entryDate",
+        header: "Entry Date",
+        cell: ({ row }) => formatDate(row.original.entryDate),
       },
       {
-        id: "beamQuality",
+        accessorKey: "takaSrNo",
+        header: "Taka Sr No",
+      },
+      {
+        id: "machine",
+        header: "Machine",
+        cell: ({ row }) => row.original.machine?.machineNo ?? "—",
+      },
+      {
+        id: "beam",
+        header: "Beam",
+        cell: ({ row }) => row.original.beam?.beamNo ?? "—",
+      },
+      {
+        id: "quality",
         header: "Quality",
-        cell: ({ row }) => row.original.beamQuality?.name ?? "—",
+        cell: ({ row }) => row.original.productionQuality?.name ?? "—",
       },
       {
-        id: "firm",
-        header: "Firm",
-        cell: ({ row }) => row.original.firm?.firmName ?? "—",
+        id: "takaMeter",
+        header: "Meter",
+        cell: ({ row }) => formatDecimal(row.original.takaMeter),
       },
       {
-        accessorKey: "tar",
-        header: "Tar",
+        id: "weight",
+        header: "Weight",
+        cell: ({ row }) => formatDecimal(row.original.weight),
       },
       {
-        accessorKey: "takaQty",
-        header: "Taka Qty",
-      },
-      {
-        id: "beamMeter",
-        header: "Beam Meter",
-        cell: ({ row }) => formatDecimal(row.original.beamMeter),
+        id: "millStatus",
+        header: "Mill Status",
+        cell: ({ row }) => {
+          const record = row.original;
+          if (!record.millOutvertDate) {
+            return <Badge variant="secondary">Not Sent</Badge>;
+          }
+          if (record.millOutvertDate && !record.millInvertId) {
+            return (
+              <Badge className="bg-amber-100 text-amber-800">At Mill</Badge>
+            );
+          }
+          return (
+            <Badge className="bg-green-100 text-green-800">Returned</Badge>
+          );
+        },
       },
       {
         id: "actions",
@@ -160,35 +159,33 @@ export default function BeamsPage() {
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => {
-          const beam = row.original;
+          const record = row.original;
           return (
             <div className="flex items-center gap-1">
-              <PermissionGate module="beams" action="view">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="View production record"
+                onClick={() => router.push(ROUTES.PRODUCTION.DETAIL(record.id))}
+              >
+                <Eye className="size-4" />
+              </Button>
+              <PermissionGate module="production" action="edit">
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="View beam"
-                  onClick={() => router.push(ROUTES.BEAMS.DETAIL(beam.id))}
-                >
-                  <Eye className="size-4" />
-                </Button>
-              </PermissionGate>
-              <PermissionGate module="beams" action="edit">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Edit beam"
-                  onClick={() => router.push(ROUTES.BEAMS.EDIT(beam.id))}
+                  aria-label="Edit production record"
+                  onClick={() => router.push(ROUTES.PRODUCTION.EDIT(record.id))}
                 >
                   <Pencil className="size-4" />
                 </Button>
               </PermissionGate>
-              <PermissionGate module="beams" action="delete">
+              <PermissionGate module="production" action="delete">
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Delete beam"
-                  onClick={() => setDeleteId(beam.id)}
+                  aria-label="Delete production record"
+                  onClick={() => setDeleteId(record.id)}
                 >
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
@@ -202,15 +199,15 @@ export default function BeamsPage() {
   );
 
   return (
-    <PermissionGate module="beams" action="view">
+    <PermissionGate module="production" action="view">
       <PageHeader
-        title="Beams"
+        title="Production"
         filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
       >
-        <PermissionGate module="beams" action="create">
-          <Button size="sm" onClick={() => router.push(ROUTES.BEAMS.NEW)}>
+        <PermissionGate module="production" action="create">
+          <Button size="sm" onClick={() => router.push(ROUTES.PRODUCTION.NEW)}>
             <Plus className="mr-1.5 size-4" />
-            Add Beam
+            Add Production
           </Button>
         </PermissionGate>
       </PageHeader>
@@ -224,7 +221,7 @@ export default function BeamsPage() {
           onPageChange={handlePageChange}
           toolbar={
             <>
-              <SearchBar placeholder="Search beams..." className="flex-1 min-w-[180px]" />
+              <SearchBar placeholder="Search production..." className="flex-1 min-w-[180px]" />
               <FilterPanel>
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-3">
@@ -248,30 +245,7 @@ export default function BeamsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Min Meter
-                    </span>
-                    <Input
-                      type="number"
-                      className="w-28"
-                      placeholder="0"
-                      defaultValue={searchParams.get("meter_min") ?? ""}
-                      onBlur={(e) => handleMeterMinChange(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Max Meter
-                    </span>
-                    <Input
-                      type="number"
-                      className="w-28"
-                      placeholder="∞"
-                      defaultValue={searchParams.get("meter_max") ?? ""}
-                      onBlur={(e) => handleMeterMaxChange(e.target.value)}
-                    />
-                  </div>
+                  <DateRangeFilter />
                 </div>
               </FilterPanel>
             </>
@@ -284,11 +258,11 @@ export default function BeamsPage() {
         onOpenChange={(open) => {
           if (!open) setDeleteId(null);
         }}
-        title="Delete Beam"
+        title="Delete Production Record"
         description={
-          deleteBeam
-            ? `Are you sure you want to delete beam "${deleteBeam.beamNo}"? This action cannot be undone.`
-            : "Are you sure you want to delete this beam? This action cannot be undone."
+          deleteRecord
+            ? `Are you sure you want to delete the production record for taka "${deleteRecord.takaSrNo}"? This action cannot be undone.`
+            : "Are you sure you want to delete this production record? This action cannot be undone."
         }
         onConfirm={handleDelete}
         isLoading={isDeleting}

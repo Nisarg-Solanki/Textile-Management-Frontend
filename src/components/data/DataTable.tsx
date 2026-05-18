@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   type Column,
   type ColumnDef,
+  type Row,
   type SortingState,
   type VisibilityState,
   flexRender,
@@ -13,6 +14,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils/cn";
 import {
   Table,
   TableBody,
@@ -48,6 +51,8 @@ type Props<T> = {
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   caption?: string;
+  getRowClassName?: (row: Row<T>) => string;
+  toolbar?: ReactNode;
 };
 
 function getColumnLabel<T>(col: Column<T, unknown>): string {
@@ -68,6 +73,8 @@ export function DataTable<T>({
   pagination,
   onPageChange,
   caption,
+  getRowClassName,
+  toolbar,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -92,34 +99,43 @@ export function DataTable<T>({
     (_, i) => i,
   );
 
+  const columnsDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 shrink-0">
+          <Columns className="size-4" />
+          Columns
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {table
+          .getAllColumns()
+          .filter((col) => col.getCanHide())
+          .map((col) => (
+            <DropdownMenuCheckboxItem
+              key={col.id}
+              checked={col.getIsVisible()}
+              onCheckedChange={(checked) => col.toggleVisibility(checked)}
+            >
+              {getColumnLabel(col)}
+            </DropdownMenuCheckboxItem>
+          ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Column visibility toggle */}
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Columns className="size-4" />
-              Columns
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {table
-              .getAllColumns()
-              .filter((col) => col.getCanHide())
-              .map((col) => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={(checked) => col.toggleVisibility(checked)}
-                >
-                  {getColumnLabel(col)}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Toolbar: search/filters on the left, columns toggle on the right */}
+      <div className="flex flex-wrap items-center gap-3">
+        {toolbar && (
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+            {toolbar}
+          </div>
+        )}
+        <div className={cn(!toolbar && "ml-auto")}>{columnsDropdown}</div>
       </div>
 
       {/* Mobile: stacked cards — hidden at md+ */}
@@ -138,7 +154,7 @@ export function DataTable<T>({
               </Card>
             ))
           : table.getRowModel().rows.map((row) => (
-              <Card key={row.id}>
+              <Card key={row.id} className={getRowClassName?.(row)}>
                 <CardContent className="pt-4 space-y-2">
                   {row.getVisibleCells().map((cell) => (
                     <div
@@ -223,6 +239,7 @@ export function DataTable<T>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
+                  className={cn(getRowClassName?.(row))}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

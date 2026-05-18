@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -21,40 +20,66 @@ import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PermissionGate } from "@/components/modules/PermissionGate";
-import { getMachines } from "@/lib/api/machines";
-import { useFirms } from "@/lib/hooks/useFirms";
+import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
-import { deleteMachineAction } from "@/lib/actions/machines.actions";
+import { getMillInverts } from "@/lib/api/millInverts";
+import { useFirms } from "@/lib/hooks/useFirms";
+import { deleteMillInvertAction } from "@/lib/actions/millInverts.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
+import { formatDate } from "@/lib/utils/formatDate";
 import { ROUTES } from "@/lib/routes";
-import type { Machine } from "@/lib/api/machines";
+import type { MillInvert } from "@/lib/api/millInverts";
 
-const LIMIT = 10;
+const LIMIT = 20;
 
-function parseStatus(raw: string | null): "active" | "inactive" | undefined {
-  if (raw === "active" || raw === "inactive") return raw;
-  return undefined;
-}
-
-export default function MachinesPage() {
+export default function MillInvertsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const search = searchParams.get("search") ?? undefined;
-  const status = parseStatus(searchParams.get("status"));
+  const millId = searchParams.get("millId") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
+  const date_from = searchParams.get("date_from") ?? undefined;
+  const date_to = searchParams.get("date_to") ?? undefined;
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
-  const [deleteTarget, setDeleteTarget] = useState<Machine | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["machines", { search, status, firmId, page, limit: LIMIT }],
-    queryFn: () => getMachines({ search, status, firmId, page, limit: LIMIT }),
+    queryKey: [
+      "mill-inverts",
+      search,
+      millId,
+      firmId,
+      date_from,
+      date_to,
+      page,
+    ],
+    queryFn: () =>
+      getMillInverts({
+        search,
+        millId,
+        firmId,
+        date_from,
+        date_to,
+        page,
+        limit: LIMIT,
+      }),
   });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
+
+  const millOptions = Array.from(
+    new Map(
+      (data?.data ?? [])
+        .filter((mi) => mi.mill)
+        .map((mi) => [mi.millId, { id: mi.millId, millName: mi.mill!.millName }])
+    ).values()
+  ).map((m) => ({ value: m.id, label: m.millName }));
+
+  const deleteRecord = data?.data.find((r) => r.id === deleteId);
 
   function handlePageChange(newPage: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -62,25 +87,25 @@ export default function MachinesPage() {
     router.push(`?${params.toString()}`);
   }
 
-  function handleStatusChange(value: string) {
+  function handleMillChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value === "all") {
-      params.delete("status");
+      params.delete("millId");
     } else {
-      params.set("status", value);
+      params.set("millId", value);
     }
     params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
   async function handleDelete() {
-    if (!deleteTarget) return;
+    if (!deleteId) return;
     setIsDeleting(true);
     try {
-      await deleteMachineAction(deleteTarget.id);
-      toast.success(`Machine "${deleteTarget.machineNo}" deleted successfully`);
-      await queryClient.invalidateQueries({ queryKey: ["machines"] });
-      setDeleteTarget(null);
+      await deleteMillInvertAction(deleteId);
+      toast.success("Mill invert deleted");
+      await queryClient.invalidateQueries({ queryKey: ["mill-inverts"] });
+      setDeleteId(null);
     } catch (err) {
       showErrorToast(err);
     } finally {
@@ -88,16 +113,25 @@ export default function MachinesPage() {
     }
   }
 
-  const columns = useMemo<ColumnDef<Machine>[]>(
+  const columns = useMemo<ColumnDef<MillInvert>[]>(
     () => [
       {
-        accessorKey: "machineNo",
-        header: "Machine No",
+        id: "invertDate",
+        header: "Invert Date",
+        cell: ({ row }) => formatDate(row.original.invertDate),
       },
       {
-        accessorKey: "machineType",
-        header: "Machine Type",
-        cell: ({ row }) => row.original.machineType ?? "—",
+        accessorKey: "millChallanNo",
+        header: "Mill Challan No",
+      },
+      {
+        accessorKey: "firmChallanNo",
+        header: "Firm Challan No",
+      },
+      {
+        id: "mill",
+        header: "Mill",
+        cell: ({ row }) => row.original.mill?.millName ?? "—",
       },
       {
         id: "firm",
@@ -105,23 +139,9 @@ export default function MachinesPage() {
         cell: ({ row }) => row.original.firm?.firmName ?? "—",
       },
       {
-        accessorKey: "status",
-        header: "Status",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <Badge
-            variant={
-              row.original.status === "active" ? "default" : "secondary"
-            }
-          >
-            {row.original.status === "active" ? "Active" : "Inactive"}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "remark",
-        header: "Remark",
-        cell: ({ row }) => row.original.remark ?? "—",
+        id: "takaCount",
+        header: "Taka Count",
+        cell: ({ row }) => row.original.invertTakas?.length ?? 0,
       },
       {
         id: "actions",
@@ -129,37 +149,37 @@ export default function MachinesPage() {
         enableHiding: false,
         enableSorting: false,
         cell: ({ row }) => {
-          const machine = row.original;
+          const record = row.original;
           return (
             <div className="flex items-center gap-1">
-              <PermissionGate module="machines" action="view">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="View mill invert"
+                onClick={() =>
+                  router.push(ROUTES.MILL_INVERTS.DETAIL(record.id))
+                }
+              >
+                <Eye className="size-4" />
+              </Button>
+              <PermissionGate module="mill_inverts" action="edit">
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="View machine"
+                  aria-label="Edit mill invert"
                   onClick={() =>
-                    router.push(ROUTES.MACHINES.DETAIL(machine.id))
+                    router.push(ROUTES.MILL_INVERTS.EDIT(record.id))
                   }
-                >
-                  <Eye className="size-4" />
-                </Button>
-              </PermissionGate>
-              <PermissionGate module="machines" action="edit">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Edit machine"
-                  onClick={() => router.push(ROUTES.MACHINES.EDIT(machine.id))}
                 >
                   <Pencil className="size-4" />
                 </Button>
               </PermissionGate>
-              <PermissionGate module="machines" action="delete">
+              <PermissionGate module="mill_inverts" action="delete">
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Delete machine"
-                  onClick={() => setDeleteTarget(machine)}
+                  aria-label="Delete mill invert"
+                  onClick={() => setDeleteId(record.id)}
                 >
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
@@ -173,15 +193,15 @@ export default function MachinesPage() {
   );
 
   return (
-    <PermissionGate module="machines" action="view">
+    <PermissionGate module="mill_inverts" action="view">
       <PageHeader
-        title="Machines"
+        title="Mill Inverts"
         filter={<FirmFilter options={firmOptions} isLoading={firmsLoading} />}
       >
-        <PermissionGate module="machines" action="create">
-          <Button size="sm" onClick={() => router.push(ROUTES.MACHINES.NEW)}>
+        <PermissionGate module="mill_inverts" action="create">
+          <Button size="sm" onClick={() => router.push(ROUTES.MILL_INVERTS.NEW)}>
             <Plus className="mr-1.5 size-4" />
-            Add Machine
+            Add Mill Invert
           </Button>
         </PermissionGate>
       </PageHeader>
@@ -195,27 +215,31 @@ export default function MachinesPage() {
           onPageChange={handlePageChange}
           toolbar={
             <>
-              <SearchBar placeholder="Search machines..." className="flex-1 min-w-[180px]" />
+              <SearchBar placeholder="Search mill inverts..." className="flex-1 min-w-[180px]" />
               <FilterPanel>
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-muted-foreground">
-                      Status
+                      Mill
                     </span>
                     <Select
-                      value={searchParams.get("status") ?? "all"}
-                      onValueChange={handleStatusChange}
+                      value={searchParams.get("millId") ?? "all"}
+                      onValueChange={handleMillChange}
                     >
-                      <SelectTrigger className="w-36">
+                      <SelectTrigger className="w-48">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="all">All Mills</SelectItem>
+                        {millOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  <DateRangeFilter />
                 </div>
               </FilterPanel>
             </>
@@ -224,12 +248,16 @@ export default function MachinesPage() {
       </div>
 
       <ConfirmDialog
-        open={deleteTarget !== null}
+        open={deleteId !== null}
         onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
+          if (!open) setDeleteId(null);
         }}
-        title="Delete Machine"
-        description={`Are you sure you want to delete machine "${deleteTarget?.machineNo}"? This action cannot be undone.`}
+        title="Delete Mill Invert"
+        description={
+          deleteRecord
+            ? `Are you sure you want to delete mill invert with challan "${deleteRecord.millChallanNo}"? This action cannot be undone.`
+            : "Are you sure you want to delete this mill invert? This action cannot be undone."
+        }
         onConfirm={handleDelete}
         isLoading={isDeleting}
       />
