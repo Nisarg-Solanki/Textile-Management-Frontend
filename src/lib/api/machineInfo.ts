@@ -1,23 +1,34 @@
 import { getList, type PaginatedResponse } from "@/lib/api/request";
 
-export type MachineInfoRow = {
+export type TakaInfo = {
   id: string;
-  machine: {
-    id: string;
-    machineNo: string;
-    firm: {
-      id: string;
-      firmName: string;
-      firmCode: string;
-    };
-  };
-  beam: {
-    id: string;
-    beamNo: string;
-  };
   takaSrNo: string;
   takaMeter: string;
-  entryDate: string;
+};
+
+export type BeamInfo = {
+  id: string;
+  beamNo: string;
+  beamMeter: string;
+  takas: TakaInfo[];
+};
+
+export type MachineInfoRow = {
+  id: string;
+  firmId: string;
+  machineNo: string;
+  machineType: string;
+  status: string;
+  remark: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  firm: {
+    id: string;
+    firmName: string;
+    firmCode: string;
+  };
+  beams: BeamInfo[];
 };
 
 export function getMachineInfo(params?: {
