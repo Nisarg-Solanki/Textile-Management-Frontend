@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -49,7 +48,6 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
@@ -71,19 +69,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setIsHydrating(false);
         // Delete the HttpOnly refreshToken cookie so the middleware does not
-        // redirect back to /dashboard, which would cause an infinite loop.
+        // redirect back to /dashboard. The ?session=expired query param is a
+        // second line of defense — if the delete above fails for any reason,
+        // the middleware still lets us reach /login because of that flag, so
+        // we can never end up in an infinite /dashboard ↔ /login loop.
         try {
           await clearSessionCookieAction();
         } catch {
-          // ignore — proceed to login regardless
+          // ignore — escape-hatch flag below handles it
         }
-        router.push(ROUTES.LOGIN);
+        window.location.replace(`${ROUTES.LOGIN}?session=expired`);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   if (isHydrating) {
     return <DashboardSkeleton />;
@@ -94,7 +95,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">
+          {children}
+        </main>
       </div>
       <MobileNav />
     </div>

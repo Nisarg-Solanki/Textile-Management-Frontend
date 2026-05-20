@@ -32,8 +32,13 @@ apiClient.interceptors.response.use(
       original._retry = true;
       isRefreshing = true;
       try {
+        // Go through the same-origin Next.js proxy route so the HttpOnly
+        // refreshToken cookie can be read server-side and forwarded to the
+        // backend. Calling backend /auth/refresh directly from the browser
+        // fails in production because the refresh cookie lives on the
+        // frontend domain and is not sent cross-origin.
         const { data } = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+          "/api/auth/refresh",
           {},
           { withCredentials: true },
         );
@@ -46,14 +51,18 @@ apiClient.interceptors.response.use(
       } catch {
         useAuthStore.getState().clear();
         if (typeof window !== "undefined") {
-          // Clear the HttpOnly refreshToken cookie via the route handler so the
-          // middleware does not redirect back to /dashboard (infinite loop).
+          // Best-effort delete of the HttpOnly refreshToken cookie. The
+          // ?session=expired flag below is the absolute fallback — even if
+          // the delete fails, the middleware lets the user reach /login.
           try {
-            await fetch("/api/auth/clear", { method: "POST", credentials: "include" });
+            await fetch("/api/auth/clear", {
+              method: "POST",
+              credentials: "include",
+            });
           } catch {
-            // ignore — redirect regardless
+            // ignore — escape-hatch query param handles it
           }
-          window.location.href = ROUTES.LOGIN;
+          window.location.replace(`${ROUTES.LOGIN}?session=expired`);
         }
       } finally {
         isRefreshing = false;

@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
@@ -24,7 +25,14 @@ import { SubmitButton } from "@/components/forms/SubmitButton";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  useEffect(() => {
+    if (searchParams.get("session") === "expired") {
+      toast.error("Your session has expired. Please log in again.");
+    }
+  }, [searchParams]);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),

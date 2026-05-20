@@ -1,7 +1,7 @@
 import { apiClient } from "@/lib/api/client";
 import { post, getOne, getList } from "@/lib/api/request";
 import type { ApiResponse, PaginatedResponse } from "@/lib/api/request";
-import { handleApiError } from "@/lib/utils/handleError";
+import { handleApiError, ApiError } from "@/lib/utils/handleError";
 import type { AuthUser, Permission } from "@/types/app";
 
 type EmptyBody = Record<string, never>;
@@ -59,8 +59,45 @@ export function resetPassword(token: string, password: string): Promise<void> {
   );
 }
 
-export function refresh(): Promise<RefreshResponse> {
-  return post<EmptyBody, RefreshResponse>("/auth/refresh", {});
+// Refresh goes through the local Next.js API route (/api/auth/refresh).
+// The route runs server-side, reads the HttpOnly refreshToken cookie via
+// next/headers, and forwards it to the backend as a Cookie header — avoiding
+// the cross-origin cookie problem in production where the frontend and
+// backend live on different domains.
+export async function refresh(): Promise<RefreshResponse> {
+  let res: Response;
+  try {
+    res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(
+      "Network error. Please check your connection.",
+      "NETWORK_ERROR",
+      0,
+    );
+  }
+
+  const json = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: RefreshResponse;
+    message?: string;
+    code?: string;
+  };
+
+  if (!res.ok || !json.data) {
+    throw new ApiError(
+      json.message ?? "Session expired",
+      json.code ?? "REFRESH_FAILED",
+      res.status,
+    );
+  }
+
+  return json.data;
 }
 
 export function getPermissionsFor(
