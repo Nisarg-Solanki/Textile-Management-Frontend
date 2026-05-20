@@ -1,10 +1,11 @@
 import { getOne, put } from "@/lib/api/request";
-import type { PermissionRow } from "@/types/app";
+import type { PermissionRow, PermissionsApiResponse } from "@/types/app";
 
 export type { PermissionRow };
 
-export function getPermissions(adminId: string): Promise<PermissionRow[]> {
-  return getOne<PermissionRow[]>(`/permissions/${adminId}`);
+export async function getPermissions(adminId: string): Promise<PermissionRow[]> {
+  const data = await getOne<PermissionsApiResponse>(`/permissions/${adminId}`);
+  return data.permissions;
 }
 
 export function updatePermissions(

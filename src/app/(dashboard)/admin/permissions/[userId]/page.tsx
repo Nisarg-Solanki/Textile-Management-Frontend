@@ -60,7 +60,7 @@ export default function ManagePermissionsPage() {
     <SuperAdminGate>
       <PageHeader
         title="Manage Permissions"
-        backHref={ROUTES.ADMIN.PENDING_USERS}
+        backHref={ROUTES.ADMIN.USERS}
       />
 
       {isLoading && (

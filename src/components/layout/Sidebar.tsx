@@ -65,32 +65,6 @@ function NavItem({ href, label, icon: Icon }: NavItemProps) {
   );
 }
 
-type StaticNavItemProps = {
-  label: string;
-  icon: LucideIcon;
-};
-
-function StaticNavItem({ label, icon: Icon }: StaticNavItemProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
-            "text-muted-foreground opacity-50 cursor-default select-none",
-            "md:justify-center lg:justify-start",
-          )}
-        >
-          <Icon className="size-5 shrink-0" />
-          <span className="hidden lg:block">{label}</span>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="right" className="lg:hidden">
-        {label}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 export function Sidebar() {
   return (
@@ -204,7 +178,11 @@ export function Sidebar() {
                   label="Pending Users"
                   icon={UserCheck}
                 />
-                <StaticNavItem label="Permissions" icon={Shield} />
+                <NavItem
+                  href={ROUTES.ADMIN.USERS}
+                  label="Users"
+                  icon={Shield}
+                />
               </div>
             </div>
           </SuperAdminGate>

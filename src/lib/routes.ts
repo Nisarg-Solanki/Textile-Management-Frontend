@@ -14,6 +14,7 @@ export const ROUTES = {
   // Admin — super_admin only
   ADMIN: {
     PENDING_USERS: "/admin/pending-users",
+    USERS: "/admin/users",
     PERMISSIONS: (userId: string) => `/admin/permissions/${userId}`,
   },
 
