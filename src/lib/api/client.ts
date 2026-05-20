@@ -46,6 +46,13 @@ apiClient.interceptors.response.use(
       } catch {
         useAuthStore.getState().clear();
         if (typeof window !== "undefined") {
+          // Clear the HttpOnly refreshToken cookie via the route handler so the
+          // middleware does not redirect back to /dashboard (infinite loop).
+          try {
+            await fetch("/api/auth/clear", { method: "POST", credentials: "include" });
+          } catch {
+            // ignore — redirect regardless
+          }
           window.location.href = ROUTES.LOGIN;
         }
       } finally {

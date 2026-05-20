@@ -7,10 +7,7 @@ import { UserCheck, UserX } from "lucide-react";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import {
-  approveUserAction,
-  rejectUserAction,
-} from "@/lib/actions/auth.actions";
+import { approveUser, rejectUser } from "@/lib/api/auth";
 import { showErrorToast } from "@/lib/utils/handleError";
 import { formatDate } from "@/lib/utils/formatDate";
 import type { AuthUser } from "@/types/app";
@@ -30,7 +27,7 @@ export function PendingUserCard({ user }: Props) {
   async function handleApprove(): Promise<void> {
     setApproveLoading(true);
     try {
-      await approveUserAction(user.id);
+      await approveUser(user.id);
       toast.success("User approved");
       await queryClient.invalidateQueries({ queryKey: ["pending-users"] });
       setApproveOpen(false);
@@ -44,7 +41,7 @@ export function PendingUserCard({ user }: Props) {
   async function handleReject(): Promise<void> {
     setRejectLoading(true);
     try {
-      await rejectUserAction(user.id);
+      await rejectUser(user.id);
       toast.success("User rejected");
       await queryClient.invalidateQueries({ queryKey: ["pending-users"] });
       setRejectOpen(false);

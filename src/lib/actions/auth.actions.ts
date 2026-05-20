@@ -2,15 +2,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import {
-  loginRaw,
-  logout,
-  buildSession,
-  approveUser,
-  rejectUser,
-} from "@/lib/api/auth";
-import { handleApiError } from "@/lib/utils/handleError";
+import { loginRaw, logout, buildSession } from "@/lib/api/auth";
+import { handleApiError, ApiError } from "@/lib/utils/handleError";
 import { ROUTES } from "@/lib/routes";
 import type { AuthUser, Permission } from "@/types/app";
 
@@ -90,7 +83,7 @@ export async function loginAction(
       permissions: session.permissions,
     };
   } catch (err) {
-    const apiError = handleApiError(err);
+    const apiError = err instanceof ApiError ? err : handleApiError(err);
     return { success: false, message: apiError.message };
   }
 }
@@ -106,12 +99,14 @@ export async function logoutAction(): Promise<void> {
   redirect(ROUTES.LOGIN);
 }
 
-export async function approveUserAction(id: string): Promise<void> {
-  await approveUser(id);
-  revalidatePath(ROUTES.ADMIN.PENDING_USERS);
+/**
+ * Silently clears the refreshToken cookie without redirecting.
+ * Called from client components when the session is known to be invalid
+ * (e.g. refreshSession() fails on hard reload) so the middleware stops
+ * redirecting back to /dashboard.
+ */
+export async function clearSessionCookieAction(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete("refreshToken");
 }
 
-export async function rejectUserAction(id: string): Promise<void> {
-  await rejectUser(id);
-  revalidatePath(ROUTES.ADMIN.PENDING_USERS);
-}

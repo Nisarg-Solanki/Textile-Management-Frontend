@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { refreshSession } from "@/lib/api/auth";
+import { clearSessionCookieAction } from "@/lib/actions/auth.actions";
 import { useAuthStore } from "@/lib/store/authStore";
 import { ROUTES } from "@/lib/routes";
 
@@ -66,9 +67,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setAuth(session.user, session.accessToken, session.permissions);
         setIsHydrating(false);
       })
-      .catch(() => {
+      .catch(async () => {
         if (cancelled) return;
         setIsHydrating(false);
+        // Delete the HttpOnly refreshToken cookie so the middleware does not
+        // redirect back to /dashboard, which would cause an infinite loop.
+        try {
+          await clearSessionCookieAction();
+        } catch {
+          // ignore — proceed to login regardless
+        }
         router.push(ROUTES.LOGIN);
       });
 

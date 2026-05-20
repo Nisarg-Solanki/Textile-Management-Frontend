@@ -27,7 +27,7 @@ export default function RegisterPage() {
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
   async function onSubmit(values: RegisterInput) {
@@ -81,6 +81,16 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Min. 8 characters"
                 required
+                showPasswordToggle
+              />
+              <InputField
+                name="confirmPassword"
+                control={form.control}
+                label="Confirm Password"
+                type="password"
+                placeholder="Re-enter your password"
+                required
+                showPasswordToggle
               />
               <SubmitButton
                 isLoading={form.formState.isSubmitting}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
 import { loginAction } from "@/lib/actions/auth.actions";
 import { useAuthStore } from "@/lib/store/authStore";
+import { showErrorToast } from "@/lib/utils/handleError";
 import { ROUTES } from "@/lib/routes";
 import { Form } from "@/components/ui/form";
 import {
@@ -31,13 +32,17 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: LoginInput) {
-    const result = await loginAction(values.email, values.password);
-    if (!result.success) {
-      toast.error(result.message);
-      return;
+    try {
+      const result = await loginAction(values.email, values.password);
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+      setAuth(result.user, result.accessToken, result.permissions);
+      router.push(ROUTES.DASHBOARD);
+    } catch (err) {
+      showErrorToast(err);
     }
-    setAuth(result.user, result.accessToken, result.permissions);
-    router.push(ROUTES.DASHBOARD);
   }
 
   return (
@@ -66,6 +71,7 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               required
+              showPasswordToggle
             />
             <div className="text-right">
               <Link
