@@ -21,6 +21,7 @@ type BeamListParams = {
   meter_min?: number;
   meter_max?: number;
   firmId?: string;
+  getAll?: boolean;
   page?: number;
   limit?: number;
 };

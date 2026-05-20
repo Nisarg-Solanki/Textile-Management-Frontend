@@ -3,6 +3,7 @@ import { getList, type PaginatedResponse } from "@/lib/api/request";
 export type TakaInfo = {
   id: string;
   takaSrNo: string;
+  takaNo: string;
   takaMeter: string;
 };
 

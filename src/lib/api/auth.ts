@@ -2,7 +2,7 @@ import { apiClient } from "@/lib/api/client";
 import { post, getOne, getList } from "@/lib/api/request";
 import type { ApiResponse, PaginatedResponse } from "@/lib/api/request";
 import { handleApiError, ApiError } from "@/lib/utils/handleError";
-import type { AuthUser, Permission } from "@/types/app";
+import type { AuthUser, Permission, PermissionsApiResponse } from "@/types/app";
 
 type EmptyBody = Record<string, never>;
 
@@ -100,11 +100,12 @@ export async function refresh(): Promise<RefreshResponse> {
   return json.data;
 }
 
-export function getPermissionsFor(
+export async function getPermissionsFor(
   userId: string,
   accessToken?: string,
 ): Promise<Permission[]> {
-  return getOne<Permission[]>(`/permissions/${userId}`, accessToken);
+  const data = await getOne<PermissionsApiResponse>(`/permissions/${userId}`, accessToken);
+  return data.permissions;
 }
 
 // ─── Composed flows ─────────────────────────────────────────────────────────
@@ -172,7 +173,14 @@ export async function loginRaw(
   }
 }
 
-// ─── Pending-user admin operations ──────────────────────────────────────────
+// ─── Admin user operations ───────────────────────────────────────────────────
+
+export function getUsers(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<AuthUser>> {
+  return getList<AuthUser>("/auth/users", params);
+}
 
 export function getPendingUsers(): Promise<PaginatedResponse<AuthUser>> {
   return getList<AuthUser>("/auth/pending-users");

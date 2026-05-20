@@ -131,6 +131,7 @@ export function MachineStatusTable({
                           <TableHead className="w-[160px]">
                             Taka Sr No
                           </TableHead>
+                          <TableHead className="w-[140px]">Taka No</TableHead>
                           <TableHead>Taka Meter</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -152,7 +153,7 @@ export function MachineStatusTable({
                                   {formatDecimal(beam.beamMeter)} m
                                 </TableCell>
                                 <TableCell
-                                  colSpan={2}
+                                  colSpan={3}
                                   className="text-muted-foreground text-sm italic"
                                 >
                                   No takas
@@ -187,6 +188,7 @@ export function MachineStatusTable({
                                 </>
                               )}
                               <TableCell>{taka.takaSrNo}</TableCell>
+                              <TableCell>{taka.takaNo}</TableCell>
                               <TableCell>
                                 {formatDecimal(taka.takaMeter)} m
                               </TableCell>

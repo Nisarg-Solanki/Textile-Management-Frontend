@@ -6,6 +6,7 @@ export const createProductionSchema = z.object({
   beamId: z.string().uuid("Please select a beam"),
   entryDate: z.date({ required_error: "Entry date is required" }),
   takaSrNo: z.string().min(1, "Taka serial number is required"),
+  takaNo: z.string().min(1, "Taka number is required"),
   takaMeter: z.coerce.number().positive("Taka meter must be positive"),
   productionQualityId: z.string().uuid("Please select a production quality"),
   weight: z.coerce.number().positive("Weight must be positive"),

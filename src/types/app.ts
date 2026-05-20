@@ -37,6 +37,11 @@ export type AuthUser = {
   createdAt: Date;
 };
 
+export type PermissionsApiResponse = {
+  user: { id: string; name: string; email: string };
+  permissions: PermissionRow[];
+};
+
 export type Firm = {
   id: string;
   firmName: string;
