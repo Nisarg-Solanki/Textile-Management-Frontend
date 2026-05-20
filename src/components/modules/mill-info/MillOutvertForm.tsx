@@ -61,7 +61,7 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
     defaultValues: {
       firmId: defaultValues?.firmId ?? "",
       millId: defaultValues?.millId ?? "",
-      outvertDate: defaultValues?.outvertDate,
+      outvertDate: defaultValues?.outvertDate ?? new Date(),
       firmChallanNo: defaultValues?.firmChallanNo ?? "",
       takaSrNos: defaultValues?.takaSrNos ?? [],
     },

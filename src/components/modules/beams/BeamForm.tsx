@@ -10,7 +10,6 @@ import { SelectField } from "@/components/forms/SelectField";
 import { SubmitButton } from "@/components/forms/SubmitButton";
 import { BeamQualityDialog } from "@/components/modules/beam-qualities/BeamQualityDialog";
 import { createBeamSchema, type CreateBeamInput } from "@/lib/schemas/beam.schema";
-import { getFirms } from "@/lib/api/firms";
 import { getBeamQualities } from "@/lib/api/beamQualities";
 
 type Props = {
@@ -26,7 +25,6 @@ export function BeamForm({ defaultValues, onSubmit, isLoading }: Props) {
   const form = useForm<CreateBeamInput>({
     resolver: zodResolver(createBeamSchema),
     defaultValues: {
-      firmId: defaultValues?.firmId ?? "",
       beamNo: defaultValues?.beamNo ?? "",
       tar: defaultValues?.tar ?? (undefined as unknown as number),
       beamQualityId: defaultValues?.beamQualityId ?? "",
@@ -35,20 +33,10 @@ export function BeamForm({ defaultValues, onSubmit, isLoading }: Props) {
     },
   });
 
-  const { data: firmsData, isLoading: firmsLoading } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
-
   const { data: qualitiesData, isLoading: qualitiesLoading } = useQuery({
     queryKey: ["beam-qualities-all"],
     queryFn: () => getBeamQualities({ limit: 100 }),
   });
-
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
 
   const qualityOptions = (qualitiesData?.data ?? []).map((q) => ({
     value: q.id,
@@ -65,16 +53,6 @@ export function BeamForm({ defaultValues, onSubmit, isLoading }: Props) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SelectField
-              control={form.control}
-              name="firmId"
-              label="Firm"
-              placeholder="Select a firm"
-              options={firmOptions}
-              isLoading={firmsLoading}
-              required
-              disabled={isLoading}
-            />
             <InputField
               control={form.control}
               name="beamNo"

@@ -66,7 +66,7 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
       firmId: defaultValues?.firmId ?? "",
       millId: defaultValues?.millId ?? "",
       millOutvertId: defaultValues?.millOutvertId ?? "",
-      invertDate: defaultValues?.invertDate,
+      invertDate: defaultValues?.invertDate ?? new Date(),
       millChallanNo: defaultValues?.millChallanNo ?? "",
       firmChallanNo: defaultValues?.firmChallanNo ?? "",
       takaSrNos: defaultValues?.takaSrNos ?? [],

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const createBeamSchema = z.object({
-  firmId: z.string().uuid("Please select a firm"),
   beamNo: z.string().min(1, "Beam number is required"),
   tar: z.coerce.number().int().positive("Tar must be a positive integer"),
   beamQualityId: z.string().uuid("Please select a beam quality"),

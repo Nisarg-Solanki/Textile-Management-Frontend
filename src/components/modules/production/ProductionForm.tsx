@@ -49,8 +49,9 @@ export function ProductionForm({
       firmId: defaultValues?.firmId ?? "",
       machineId: defaultValues?.machineId ?? "",
       beamId: defaultValues?.beamId ?? "",
-      entryDate: defaultValues?.entryDate,
+      entryDate: defaultValues?.entryDate ?? new Date(),
       takaSrNo: defaultValues?.takaSrNo ?? "",
+      takaNo: defaultValues?.takaNo ?? "",
       takaMeter: defaultValues?.takaMeter,
       productionQualityId: defaultValues?.productionQualityId ?? "",
       weight: defaultValues?.weight,
@@ -68,7 +69,6 @@ export function ProductionForm({
   useEffect(() => {
     if (watchedFirmId === mountedFirmId.current) return;
     form.setValue("machineId", "");
-    form.setValue("beamId", "");
   }, [watchedFirmId, form]);
 
   const firms = useQuery({
@@ -83,9 +83,8 @@ export function ProductionForm({
   });
 
   const beams = useQuery({
-    queryKey: ["beams-by-firm", selectedFirmId],
-    queryFn: () => getBeams({ firmId: selectedFirmId!, limit: 100 }),
-    enabled: !!selectedFirmId,
+    queryKey: ["beams-all"],
+    queryFn: () => getBeams({ getAll: true }),
   });
 
   const qualities = useQuery({
@@ -115,6 +114,16 @@ export function ProductionForm({
     label: q.name,
   }));
 
+  async function handleFormSubmit(data: CreateProductionInput) {
+    if (selectedFirm?.challanEnable && !data.productionChallanNo?.trim()) {
+      form.setError("productionChallanNo", {
+        message: "Challan number is required",
+      });
+      return;
+    }
+    await onSubmit(data);
+  }
+
   function handleQualityCreated(newQuality: { id: string; name: string }) {
     queryClient.invalidateQueries({ queryKey: ["production-qualities-active"] });
     form.setValue("productionQualityId", newQuality.id);
@@ -124,7 +133,7 @@ export function ProductionForm({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Firm + Machine */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectField
@@ -157,12 +166,9 @@ export function ProductionForm({
               name="beamId"
               control={form.control}
               label="Beam"
-              placeholder={
-                !selectedFirmId ? "Select a firm first" : "Select a beam"
-              }
+              placeholder="Select a beam"
               options={beamOptions}
               isLoading={beams.isLoading}
-              disabled={!selectedFirmId}
               required
             />
           </div>
@@ -191,13 +197,21 @@ export function ProductionForm({
             )}
           />
 
-          {/* Taka Sr No + Taka Meter */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Taka Sr No + Taka No + Taka Meter */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <InputField
               name="takaSrNo"
               control={form.control}
               label="Taka Sr No"
               placeholder="Enter taka serial number"
+              required
+            />
+
+            <InputField
+              name="takaNo"
+              control={form.control}
+              label="Taka No"
+              placeholder="Enter taka number"
               required
             />
 
@@ -234,6 +248,17 @@ export function ProductionForm({
             />
           </div>
 
+          {/* Challan No — only when firm has challanEnable, required */}
+          {selectedFirm?.challanEnable && (
+            <InputField
+              name="productionChallanNo"
+              control={form.control}
+              label="Production Challan No"
+              placeholder="Enter challan number"
+              required
+            />
+          )}
+
           {/* Remark — full width */}
           <InputField
             name="remark"
@@ -241,16 +266,6 @@ export function ProductionForm({
             label="Remark"
             placeholder="Enter remark (optional)"
           />
-
-          {/* Challan No — only when firm has challanEnable */}
-          {selectedFirm?.challanEnable && (
-            <InputField
-              name="productionChallanNo"
-              control={form.control}
-              label="Production Challan No"
-              placeholder="Enter challan number"
-            />
-          )}
 
           {/* Auto-filled mill info — always rendered, never editable */}
           <div className="space-y-2">

@@ -64,7 +64,6 @@ export default function EditBeamPage() {
       ) : beam ? (
         <BeamForm
           defaultValues={{
-            firmId: beam.firmId,
             beamNo: beam.beamNo,
             tar: beam.tar,
             beamQualityId: beam.beamQualityId,
