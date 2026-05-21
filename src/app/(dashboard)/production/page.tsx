@@ -8,7 +8,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,6 +20,7 @@ import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MillStatusBadge } from "@/components/common/MillStatusBadge";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
@@ -151,22 +151,35 @@ export default function ProductionPage() {
         cell: ({ row }) => row.original.remark ?? "—",
       },
       {
+        id: "millName",
+        header: "Mill Name",
+        cell: ({ row }) => row.original.millName ?? "—",
+      },
+      {
+        id: "millOutvertDate",
+        header: "Mill Outvert Date",
+        cell: ({ row }) =>
+          row.original.millOutvertDate
+            ? formatDate(row.original.millOutvertDate)
+            : "—",
+      },
+      {
+        id: "millInvertDate",
+        header: "Mill Invert Date",
+        cell: ({ row }) =>
+          row.original.millInvertDate
+            ? formatDate(row.original.millInvertDate)
+            : "—",
+      },
+      {
         id: "millStatus",
         header: "Mill Status",
-        cell: ({ row }) => {
-          const record = row.original;
-          if (!record.millOutvertDate) {
-            return <Badge variant="secondary">Not Sent</Badge>;
-          }
-          if (record.millOutvertDate && !record.millInvertId) {
-            return (
-              <Badge className="bg-amber-100 text-amber-800">At Mill</Badge>
-            );
-          }
-          return (
-            <Badge className="bg-green-100 text-green-800">Returned</Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <MillStatusBadge
+            millOutvertDate={row.original.millOutvertDate}
+            millInvertId={row.original.millInvertId}
+          />
+        ),
       },
       {
         id: "actions",

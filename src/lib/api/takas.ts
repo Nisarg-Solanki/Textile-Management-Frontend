@@ -15,6 +15,8 @@ export type Taka = {
   productionInfo?: {
     entryDate: string;
     weight: number;
+    millOutvertDate?: string;
+    millInvertId?: string;
     machine?: { machineNo: string };
     productionQuality?: { name: string };
   };
