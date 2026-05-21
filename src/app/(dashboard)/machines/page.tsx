@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,23 +45,23 @@ export default function MachinesPage() {
   const search = searchParams.get("search") ?? undefined;
   const status = parseStatus(searchParams.get("status"));
   const firmId = searchParams.get("firmId") ?? undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [deleteTarget, setDeleteTarget] = useState<Machine | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["machines", { search, status, firmId, page, limit: LIMIT }],
-    queryFn: () => getMachines({ search, status, firmId, page, limit: LIMIT }),
-  });
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
+    useInfiniteList<Machine, {
+      search?: string;
+      status?: "active" | "inactive";
+      firmId?: string;
+    }>({
+      queryKey: ["machines"],
+      params: { search, status, firmId },
+      limit: LIMIT,
+      fetcher: getMachines,
+    });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
 
   function handleStatusChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -69,7 +70,6 @@ export default function MachinesPage() {
     } else {
       params.set("status", value);
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -188,11 +188,17 @@ export default function MachinesPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="machines"
+          onRefresh={refetch}
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search machines..." className="flex-1 min-w-[180px]" />

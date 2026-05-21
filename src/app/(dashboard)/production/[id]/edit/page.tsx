@@ -51,6 +51,7 @@ export default function EditProductionPage() {
       router.push(ROUTES.PRODUCTION.DETAIL(id));
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +73,7 @@ export default function EditProductionPage() {
             beamId: record.beamId,
             entryDate: new Date(record.entryDate),
             takaSrNo: record.takaSrNo,
+            takaNo: record.takaNo,
             takaMeter: record.takaMeter,
             productionQualityId: record.productionQualityId,
             weight: record.weight,

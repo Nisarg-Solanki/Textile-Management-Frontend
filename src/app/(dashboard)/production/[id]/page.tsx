@@ -87,38 +87,20 @@ export default function ProductionDetailPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <DetailSkeleton rows={9} />
+              <DetailSkeleton rows={11} />
             ) : record ? (
               <>
-                <DetailRow label="Entry Date" value={formatDate(record.entryDate)} />
-                <DetailRow label="Taka Sr No" value={record.takaSrNo} />
-                <DetailRow label="Firm" value={record.firm?.firmName} />
-                <DetailRow
-                  label="Machine"
-                  value={record.machine?.machineNo}
-                />
-                <DetailRow label="Beam" value={record.beam?.beamNo} />
-                <DetailRow
-                  label="Production Quality"
-                  value={record.productionQuality?.name}
-                />
-                <DetailRow
-                  label="Taka Meter"
-                  value={formatDecimal(record.takaMeter)}
-                />
-                <DetailRow
-                  label="Weight"
-                  value={formatDecimal(record.weight)}
-                />
-                {record.remark && (
-                  <DetailRow label="Remark" value={record.remark} />
-                )}
-                {record.productionChallanNo && (
-                  <DetailRow
-                    label="Production Challan No"
-                    value={record.productionChallanNo}
-                  />
-                )}
+                <DetailRow label="Date" value={formatDate(record.entryDate)} />
+                <DetailRow label="Challan No" value={record.productionChallanNo ?? "—"} />
+                <DetailRow label="Sr. No." value={record.takaSrNo} />
+                <DetailRow label="M/C No." value={record.machine?.machineNo ?? "—"} />
+                <DetailRow label="Taka No." value={record.takaNo} />
+                <DetailRow label="Mtrs." value={formatDecimal(record.takaMeter)} />
+                <DetailRow label="Beam No." value={record.beam?.beamNo ?? "—"} />
+                <DetailRow label="Quality" value={record.productionQuality?.name ?? "—"} />
+                <DetailRow label="Wt." value={formatDecimal(record.weight)} />
+                <DetailRow label="Remark" value={record.remark ?? "—"} />
+                <DetailRow label="Firm" value={record.firm?.firmName ?? "—"} />
               </>
             ) : null}
           </CardContent>

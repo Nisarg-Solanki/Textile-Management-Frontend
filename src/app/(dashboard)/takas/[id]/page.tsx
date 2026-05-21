@@ -44,6 +44,7 @@ function TakaInfoCard({ taka }: { taka: Taka }) {
   return (
     <>
       <DetailRow label="Taka Sr No" value={taka.takaSrNo} />
+      <DetailRow label="Taka No" value={taka.takaNo} />
       <DetailRow label="Meter" value={formatDecimal(taka.takaMeter)} />
       <DetailRow label="Beam No" value={taka.beam?.beamNo} />
       <DetailRow label="Firm Name" value={taka.firm?.firmName} />
@@ -89,7 +90,7 @@ export default function TakaDetailPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <DetailSkeleton rows={5} />
+              <DetailSkeleton rows={6} />
             ) : taka ? (
               <TakaInfoCard taka={taka} />
             ) : null}

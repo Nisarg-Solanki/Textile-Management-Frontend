@@ -20,9 +20,10 @@ export default function NewBeamPage() {
     try {
       await createBeamAction(data);
       toast.success("Beam created successfully");
-      router.push(ROUTES.BEAMS.LIST);
+      // router.push(ROUTES.BEAMS.LIST);
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsLoading(false);
     }

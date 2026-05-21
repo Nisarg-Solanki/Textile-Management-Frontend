@@ -11,6 +11,7 @@ export type ProductionInfo = {
   beamId: string;
   entryDate: string;
   takaSrNo: string;
+  takaNo: string;
   takaMeter: number;
   productionQualityId: string;
   weight: number;
