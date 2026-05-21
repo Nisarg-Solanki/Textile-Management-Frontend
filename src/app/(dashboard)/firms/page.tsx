@@ -48,7 +48,7 @@ export default function FirmsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Firm | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Firm, { search?: string; status?: "active" | "inactive" }>({
       queryKey: ["firms"],
       params: { search, status },
@@ -167,6 +167,8 @@ export default function FirmsPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="firms"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

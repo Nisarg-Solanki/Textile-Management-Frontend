@@ -34,7 +34,7 @@ const STATUS_CLASS: Record<string, string> = {
 export default function UsersPage() {
   const router = useRouter();
 
-  const { items: users, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items: users, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<AuthUser, Record<string, never>>({
       queryKey: ["users"],
       params: {},
@@ -124,6 +124,8 @@ export default function UsersPage() {
         />
       ) : (
         <DataTable
+          tableId="users"
+          onRefresh={refetch}
           columns={columns}
           data={users}
           isLoading={isLoading}

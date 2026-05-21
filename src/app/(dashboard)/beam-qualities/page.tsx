@@ -34,7 +34,7 @@ export default function BeamQualitiesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<BeamQuality, { search?: string }>({
       queryKey: ["beam-qualities"],
       params: { search },
@@ -121,6 +121,8 @@ export default function BeamQualitiesPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="beam-qualities"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

@@ -49,7 +49,7 @@ export default function ProductionPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<ProductionInfo, {
       search?: string;
       qualityId?: string;
@@ -229,6 +229,8 @@ export default function ProductionPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="production"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

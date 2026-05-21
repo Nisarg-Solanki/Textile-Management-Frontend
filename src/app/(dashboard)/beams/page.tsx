@@ -49,7 +49,7 @@ export default function BeamsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Beam, {
       search?: string;
       qualityId?: string;
@@ -216,6 +216,8 @@ export default function BeamsPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="beams"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

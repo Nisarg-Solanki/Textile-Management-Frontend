@@ -47,7 +47,7 @@ export default function MillInvertsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<MillInvert, {
       search?: string;
       millId?: string;
@@ -193,6 +193,8 @@ export default function MillInvertsPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="mill-inverts"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

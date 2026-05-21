@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type Column,
   type ColumnDef,
+  type ColumnOrderState,
   type Row,
   type SortingState,
   type VisibilityState,
@@ -13,7 +14,16 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Columns, Loader2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Columns,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -53,6 +63,10 @@ type Props<T> = {
   caption?: string;
   getRowClassName?: (row: Row<T>) => string;
   toolbar?: ReactNode;
+  // Stable id for persisting column order to localStorage. Omit to disable persistence.
+  tableId?: string;
+  // Refetch callback for the refresh button. Spinner shown while the returned promise pends.
+  onRefresh?: () => void | Promise<unknown>;
   // Infinite scroll mode — when provided, replaces pagination footer with a
   // sentinel that triggers fetchNextPage when scrolled into view.
   infiniteScroll?: {
@@ -62,6 +76,26 @@ type Props<T> = {
     totalCount?: number;
   };
 };
+
+function storageKey(tableId: string) {
+  return `dt:order:${tableId}`;
+}
+
+function loadOrder(tableId: string | undefined, ids: string[]): ColumnOrderState {
+  if (!tableId || typeof window === "undefined") return ids;
+  try {
+    const raw = window.localStorage.getItem(storageKey(tableId));
+    if (!raw) return ids;
+    const saved = JSON.parse(raw) as unknown;
+    if (!Array.isArray(saved)) return ids;
+    const known = new Set(ids);
+    const filtered = saved.filter((id): id is string => typeof id === "string" && known.has(id));
+    const missing = ids.filter((id) => !filtered.includes(id));
+    return [...filtered, ...missing];
+  } catch {
+    return ids;
+  }
+}
 
 function getColumnLabel<T>(col: Column<T, unknown>): string {
   const header = col.columnDef.header;
@@ -83,11 +117,70 @@ export function DataTable<T>({
   caption,
   getRowClassName,
   toolbar,
+  tableId,
+  onRefresh,
   infiniteScroll,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const allColumnIds = useMemo(
+    () => columns.map((c, i) => (c.id ?? ("accessorKey" in c ? String(c.accessorKey) : `col-${i}`))),
+    [columns],
+  );
+
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() =>
+    loadOrder(tableId, allColumnIds),
+  );
+
+  useEffect(() => {
+    setColumnOrder((prev) => {
+      const known = new Set(allColumnIds);
+      const filtered = prev.filter((id) => known.has(id));
+      const missing = allColumnIds.filter((id) => !filtered.includes(id));
+      const next = [...filtered, ...missing];
+      if (
+        next.length === prev.length &&
+        next.every((id, i) => id === prev[i])
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [allColumnIds]);
+
+  useEffect(() => {
+    if (!tableId || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(storageKey(tableId), JSON.stringify(columnOrder));
+    } catch {
+      // ignore quota errors
+    }
+  }, [tableId, columnOrder]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [onRefresh, isRefreshing]);
+
+  const moveColumn = useCallback((id: string, direction: -1 | 1) => {
+    setColumnOrder((prev) => {
+      const idx = prev.indexOf(id);
+      if (idx === -1) return prev;
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!infiniteScroll) return;
@@ -113,9 +206,10 @@ export function DataTable<T>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnVisibility },
+    state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -130,6 +224,7 @@ export function DataTable<T>({
     (_, i) => i,
   );
 
+  const orderedColumns = table.getAllLeafColumns();
   const columnsDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -138,24 +233,75 @@ export function DataTable<T>({
           Columns
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>Columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter((col) => col.getCanHide())
-          .map((col) => (
-            <DropdownMenuCheckboxItem
+        {orderedColumns.map((col, index) => {
+          const canHide = col.getCanHide();
+          return (
+            <div
               key={col.id}
-              checked={col.getIsVisible()}
-              onCheckedChange={(checked) => col.toggleVisibility(checked)}
+              className="flex items-center gap-1 px-2 py-1 text-sm"
             >
-              {getColumnLabel(col)}
-            </DropdownMenuCheckboxItem>
-          ))}
+              {canHide ? (
+                <DropdownMenuCheckboxItem
+                  className="flex-1 m-0"
+                  checked={col.getIsVisible()}
+                  onCheckedChange={(checked) => col.toggleVisibility(checked)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {getColumnLabel(col)}
+                </DropdownMenuCheckboxItem>
+              ) : (
+                <span className="flex-1 pl-8 pr-2 text-muted-foreground">
+                  {getColumnLabel(col)}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0"
+                aria-label="Move column up"
+                disabled={index === 0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  moveColumn(col.id, -1);
+                }}
+              >
+                <ArrowUp className="size-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0"
+                aria-label="Move column down"
+                disabled={index === orderedColumns.length - 1}
+                onClick={(e) => {
+                  e.preventDefault();
+                  moveColumn(col.id, 1);
+                }}
+              >
+                <ArrowDown className="size-3" />
+              </Button>
+            </div>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
+
+  const refreshButton = onRefresh ? (
+    <Button
+      variant="outline"
+      size="icon"
+      className="shrink-0 size-9"
+      aria-label="Refresh"
+      disabled={isRefreshing}
+      onClick={handleRefresh}
+    >
+      <RefreshCw className={cn("size-4", isRefreshing && "animate-spin")} />
+    </Button>
+  ) : null;
 
   return (
     <div className="space-y-4">
@@ -166,7 +312,10 @@ export function DataTable<T>({
             {toolbar}
           </div>
         )}
-        <div className={cn(!toolbar && "ml-auto")}>{columnsDropdown}</div>
+        <div className={cn("flex items-center gap-2", !toolbar && "ml-auto")}>
+          {refreshButton}
+          {columnsDropdown}
+        </div>
       </div>
 
       {/* Mobile: stacked cards — hidden at md+ */}

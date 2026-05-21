@@ -35,7 +35,7 @@ export default function TakasPage() {
   const meter_min = meterMinRaw ? Number(meterMinRaw) : undefined;
   const meter_max = meterMaxRaw ? Number(meterMaxRaw) : undefined;
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Taka, {
       search?: string;
       beam_no?: string;
@@ -145,6 +145,8 @@ export default function TakasPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="takas"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

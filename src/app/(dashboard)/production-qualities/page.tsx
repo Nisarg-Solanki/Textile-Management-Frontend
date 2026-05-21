@@ -34,7 +34,7 @@ export default function ProductionQualitiesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<ProductionQuality, { search?: string }>({
       queryKey: ["production-qualities"],
       params: { search },
@@ -121,6 +121,8 @@ export default function ProductionQualitiesPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="production-qualities"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

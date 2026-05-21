@@ -48,7 +48,7 @@ export default function MillsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Mill | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Mill, { search?: string; status?: "active" | "inactive" }>({
       queryKey: ["mills"],
       params: { search, status },
@@ -157,6 +157,8 @@ export default function MillsPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="mills"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}

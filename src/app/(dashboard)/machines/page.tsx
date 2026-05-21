@@ -49,7 +49,7 @@ export default function MachinesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Machine | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Machine, {
       search?: string;
       status?: "active" | "inactive";
@@ -188,6 +188,8 @@ export default function MachinesPage() {
 
       <div className="space-y-4">
         <DataTable
+          tableId="machines"
+          onRefresh={refetch}
           columns={columns}
           data={items}
           isLoading={isLoading}
