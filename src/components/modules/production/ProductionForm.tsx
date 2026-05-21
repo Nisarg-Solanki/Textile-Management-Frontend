@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
-import { Form } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputField } from "@/components/forms/InputField";
@@ -142,7 +149,9 @@ export function ProductionForm({
   }
 
   function handleQualityCreated(newQuality: { id: string; name: string }) {
-    queryClient.invalidateQueries({ queryKey: ["production-qualities-active"] });
+    queryClient.invalidateQueries({
+      queryKey: ["production-qualities-active"],
+    });
     form.setValue("productionQualityId", newQuality.id);
     setQualityDialogOpen(false);
   }
@@ -150,9 +159,12 @@ export function ProductionForm({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-          {/* Firm + Machine */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <form
+          onSubmit={form.handleSubmit(handleFormSubmit)}
+          className="space-y-4"
+        >
+          {/* Firm + Machine + Beam */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <SelectField
               name="firmId"
               control={form.control}
@@ -166,7 +178,7 @@ export function ProductionForm({
             <SelectField
               name="machineId"
               control={form.control}
-              label="Machine"
+              label="Machine No."
               placeholder={
                 !selectedFirmId ? "Select a firm first" : "Select a machine"
               }
@@ -175,14 +187,11 @@ export function ProductionForm({
               disabled={!selectedFirmId}
               required
             />
-          </div>
 
-          {/* Beam — half-width, entryDate — full width */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectField
               name="beamId"
               control={form.control}
-              label="Beam"
+              label="Beam No."
               placeholder="Select a beam"
               options={beamOptions}
               isLoading={beams.isLoading}
@@ -190,37 +199,34 @@ export function ProductionForm({
             />
           </div>
 
-          {/* Entry date — full width on all breakpoints */}
-          <Controller
-            control={form.control}
-            name="entryDate"
-            render={({ field, fieldState }) => (
-              <div className="flex flex-col gap-1.5">
-                <Label>
-                  Entry Date{" "}
-                  <span className="ml-1 text-destructive">*</span>
-                </Label>
-                <DatePickerField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Pick entry date"
-                />
-                {fieldState.error && (
-                  <p className="text-sm font-medium text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
-              </div>
-            )}
-          />
-
-          {/* Taka Sr No + Taka No + Taka Meter */}
+          {/* Entry Date + Taka Sr No + Taka No */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FormField
+              control={form.control}
+              name="entryDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Entry Date
+                    <span className="ml-1 text-destructive">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <DatePickerField
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Pick entry date"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <InputField
               name="takaSrNo"
               control={form.control}
               label="Taka Sr No"
-              placeholder="Enter taka serial number"
+              placeholder="Enter serial number"
               required
             />
 
@@ -231,19 +237,19 @@ export function ProductionForm({
               placeholder="Enter taka number"
               required
             />
+          </div>
 
+          {/* Taka Meter + Production Quality + Weight */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <InputField
               name="takaMeter"
               control={form.control}
               label="Taka Meter"
-              placeholder="Enter taka meter"
+              placeholder="Enter meters"
               type="number"
               required
             />
-          </div>
 
-          {/* Production Quality + Weight */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectField
               name="productionQualityId"
               control={form.control}
@@ -265,24 +271,30 @@ export function ProductionForm({
             />
           </div>
 
-          {/* Challan No — only when firm has challanEnable, required */}
-          {selectedFirm?.challanEnable && (
-            <InputField
-              name="productionChallanNo"
-              control={form.control}
-              label="Production Challan No"
-              placeholder="Enter challan number"
-              required
-            />
-          )}
-
-          {/* Remark — full width */}
-          <InputField
-            name="remark"
-            control={form.control}
-            label="Remark"
-            placeholder="Enter remark (optional)"
-          />
+          {/* Challan No + Remark */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {selectedFirm?.challanEnable && (
+              <InputField
+                name="productionChallanNo"
+                control={form.control}
+                label="Challan No"
+                placeholder="Enter challan number"
+                required
+              />
+            )}
+            <div
+              className={
+                selectedFirm?.challanEnable ? "md:col-span-2" : "md:col-span-3"
+              }
+            >
+              <InputField
+                name="remark"
+                control={form.control}
+                label="Remark"
+                placeholder="Enter remark (optional)"
+              />
+            </div>
+          </div>
 
           {/* Auto-filled mill info — always rendered, never editable */}
           <div className="space-y-2">

@@ -8,19 +8,16 @@ import { DataTable } from "@/components/data/DataTable";
 import { formatDate } from "@/lib/utils/formatDate";
 import type { MillSummaryRow } from "@/lib/api/millSummary";
 
-type PaginationInfo = {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
-
 type Props = {
   data: MillSummaryRow[];
   isLoading?: boolean;
   toolbar?: ReactNode;
-  pagination?: PaginationInfo;
-  onPageChange?: (page: number) => void;
+  infiniteScroll?: {
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    fetchNextPage: () => void;
+    totalCount?: number;
+  };
 };
 
 type MillStatus = "not_sent" | "at_mill" | "returned";
@@ -64,8 +61,7 @@ export function MillSummaryTable({
   data,
   isLoading,
   toolbar,
-  pagination,
-  onPageChange,
+  infiniteScroll,
 }: Props) {
   const columns = useMemo<ColumnDef<MillSummaryRow>[]>(
     () => [
@@ -120,8 +116,7 @@ export function MillSummaryTable({
       data={data}
       isLoading={isLoading}
       toolbar={toolbar}
-      pagination={pagination}
-      onPageChange={onPageChange}
+      infiniteScroll={infiniteScroll}
       getRowClassName={getRowClassName}
     />
   );

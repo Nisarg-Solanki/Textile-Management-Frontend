@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Shield, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,15 +33,14 @@ const STATUS_CLASS: Record<string, string> = {
 
 export default function UsersPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["users", { page, limit: LIMIT }],
-    queryFn: () => getUsers({ page, limit: LIMIT }),
-  });
-
-  const users = data?.data ?? [];
-  const pagination = data?.pagination;
+  const { items: users, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<AuthUser, Record<string, never>>({
+      queryKey: ["users"],
+      params: {},
+      limit: LIMIT,
+      fetcher: getUsers,
+    });
 
   const columns = useMemo<ColumnDef<AuthUser>[]>(
     () => [
@@ -128,8 +127,12 @@ export default function UsersPage() {
           columns={columns}
           data={users}
           isLoading={isLoading}
-          pagination={pagination}
-          onPageChange={setPage}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
         />
       )}
     </SuperAdminGate>

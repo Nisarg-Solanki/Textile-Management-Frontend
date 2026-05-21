@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -28,7 +28,6 @@ export default function MillSummaryPage() {
   const date_from = searchParams.get("date_from") ?? undefined;
   const date_to = searchParams.get("date_to") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   // Local state for mill free-text filter — debounced to URL
   const [millInput, setMillInput] = useState(searchParams.get("mill") ?? "");
@@ -44,7 +43,6 @@ export default function MillSummaryPage() {
       } else {
         params.delete("mill");
       }
-      params.set("page", "1");
       router.push(`?${params.toString()}`);
     }, 300);
     return () => {
@@ -52,33 +50,28 @@ export default function MillSummaryPage() {
     };
   }, [millInput, router, searchParams]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["mill-summary", status, search, mill, date_from, date_to, firmId, page],
-    queryFn: () =>
-      getMillSummary({
-        search,
-        mill,
-        status: status === "all" ? undefined : status,
-        date_from,
-        date_to,
-        firmId,
-        page,
-        limit: LIMIT,
-      }),
-  });
+  const apiStatus = status === "all" ? undefined : status;
+
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<import("@/lib/api/millSummary").MillSummaryRow, {
+      search?: string;
+      mill?: string;
+      status?: string;
+      date_from?: string;
+      date_to?: string;
+      firmId?: string;
+    }>({
+      queryKey: ["mill-summary", status],
+      params: { search, mill, status: apiStatus, date_from, date_to, firmId },
+      limit: LIMIT,
+      fetcher: getMillSummary,
+    });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   function handleTabChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("status", value);
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
     router.push(`?${params.toString()}`);
   }
 
@@ -103,10 +96,14 @@ export default function MillSummaryPage() {
 
       <div className="space-y-4">
         <MillSummaryTable
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search mill summary..." className="flex-1 min-w-[180px]" />

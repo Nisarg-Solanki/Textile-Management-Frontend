@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type Column,
   type ColumnDef,
@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Columns } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Columns, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -53,6 +53,14 @@ type Props<T> = {
   caption?: string;
   getRowClassName?: (row: Row<T>) => string;
   toolbar?: ReactNode;
+  // Infinite scroll mode — when provided, replaces pagination footer with a
+  // sentinel that triggers fetchNextPage when scrolled into view.
+  infiniteScroll?: {
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    fetchNextPage: () => void;
+    totalCount?: number;
+  };
 };
 
 function getColumnLabel<T>(col: Column<T, unknown>): string {
@@ -75,9 +83,32 @@ export function DataTable<T>({
   caption,
   getRowClassName,
   toolbar,
+  infiniteScroll,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!infiniteScroll) return;
+    const { hasNextPage, isFetchingNextPage, fetchNextPage } = infiniteScroll;
+    if (!hasNextPage) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [infiniteScroll]);
 
   const table = useReactTable({
     data,
@@ -256,32 +287,51 @@ export function DataTable<T>({
         </Table>
       </div>
 
-      {/* Pagination */}
-      {pagination && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Page {pagination.page} of {pagination.totalPages} &mdash;{" "}
-            {pagination.total} total
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => onPageChange?.(pagination.page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => onPageChange?.(pagination.page + 1)}
-            >
-              Next
-            </Button>
-          </div>
+      {/* Infinite scroll sentinel + status — takes precedence over pagination footer */}
+      {infiniteScroll ? (
+        <div className="flex flex-col items-center gap-2 py-2 text-sm text-muted-foreground">
+          {infiniteScroll.isFetchingNextPage && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" />
+              Loading more...
+            </div>
+          )}
+          {!infiniteScroll.hasNextPage && data.length > 0 && (
+            <span>
+              {typeof infiniteScroll.totalCount === "number"
+                ? `All ${infiniteScroll.totalCount} loaded`
+                : "End of list"}
+            </span>
+          )}
+          <div ref={sentinelRef} aria-hidden className="h-px w-full" />
         </div>
+      ) : (
+        pagination && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              Page {pagination.page} of {pagination.totalPages} &mdash;{" "}
+              {pagination.total} total
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page <= 1}
+                onClick={() => onPageChange?.(pagination.page - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => onPageChange?.(pagination.page + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

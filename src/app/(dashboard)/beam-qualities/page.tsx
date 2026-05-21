@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,28 +24,23 @@ import { formatDate } from "@/lib/utils/formatDate";
 type EditQuality = { id: string; name: string; status: string };
 
 export default function BeamQualitiesPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const search = searchParams.get("search") ?? undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editQuality, setEditQuality] = useState<EditQuality | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["beam-qualities", search, page],
-    queryFn: () => getBeamQualities({ search, page, limit: 20 }),
-  });
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<BeamQuality, { search?: string }>({
+      queryKey: ["beam-qualities"],
+      params: { search },
+      limit: 20,
+      fetcher: getBeamQualities,
+    });
 
   const columns = useMemo<ColumnDef<BeamQuality>[]>(
     () => [
@@ -126,10 +122,14 @@ export default function BeamQualitiesPage() {
       <div className="space-y-4">
         <DataTable
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <SearchBar placeholder="Search beam qualities..." className="flex-1 min-w-[180px]" />
           }

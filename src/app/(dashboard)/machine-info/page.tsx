@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,14 +26,24 @@ export default function MachineInfoPage() {
   const search = searchParams.get("search") ?? undefined;
   const machine_no = searchParams.get("machine_no") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["machine-info", search, machine_no, firmId, page],
-    queryFn: () =>
-      getMachineInfo({ search, machine_no, firmId, page, limit: LIMIT }),
-    refetchInterval: 30000,
-  });
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
+    useInfiniteList<import("@/lib/api/machineInfo").MachineInfoRow, {
+      search?: string;
+      machine_no?: string;
+      firmId?: string;
+    }>({
+      queryKey: ["machine-info"],
+      params: { search, machine_no, firmId },
+      limit: LIMIT,
+      fetcher: getMachineInfo,
+    });
+
+  // Live polling — refetch from first page every 30s
+  useEffect(() => {
+    const id = setInterval(() => refetch(), 30000);
+    return () => clearInterval(id);
+  }, [refetch]);
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
@@ -42,13 +54,6 @@ export default function MachineInfoPage() {
     } else {
       params.delete("machine_no");
     }
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  }
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
     router.push(`?${params.toString()}`);
   }
 
@@ -72,10 +77,14 @@ export default function MachineInfoPage() {
 
       <div className="space-y-4">
         <MachineStatusTable
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search machines..." className="flex-1 min-w-[180px]" />

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -42,50 +43,35 @@ export default function MillInvertsPage() {
   const firmId = searchParams.get("firmId") ?? undefined;
   const date_from = searchParams.get("date_from") ?? undefined;
   const date_to = searchParams.get("date_to") ?? undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: [
-      "mill-inverts",
-      search,
-      millId,
-      firmId,
-      date_from,
-      date_to,
-      page,
-    ],
-    queryFn: () =>
-      getMillInverts({
-        search,
-        millId,
-        firmId,
-        date_from,
-        date_to,
-        page,
-        limit: LIMIT,
-      }),
-  });
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<MillInvert, {
+      search?: string;
+      millId?: string;
+      firmId?: string;
+      date_from?: string;
+      date_to?: string;
+    }>({
+      queryKey: ["mill-inverts"],
+      params: { search, millId, firmId, date_from, date_to },
+      limit: LIMIT,
+      fetcher: getMillInverts,
+    });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   const millOptions = Array.from(
     new Map(
-      (data?.data ?? [])
+      items
         .filter((mi) => mi.mill)
         .map((mi) => [mi.millId, { id: mi.millId, millName: mi.mill!.millName }])
     ).values()
   ).map((m) => ({ value: m.id, label: m.millName }));
 
-  const deleteRecord = data?.data.find((r) => r.id === deleteId);
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
+  const deleteRecord = items.find((r) => r.id === deleteId);
 
   function handleMillChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -94,7 +80,6 @@ export default function MillInvertsPage() {
     } else {
       params.set("millId", value);
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -209,10 +194,14 @@ export default function MillInvertsPage() {
       <div className="space-y-4">
         <DataTable
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search mill inverts..." className="flex-1 min-w-[180px]" />

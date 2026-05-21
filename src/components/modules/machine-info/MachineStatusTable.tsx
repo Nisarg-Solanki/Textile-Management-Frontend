@@ -1,9 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Activity } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Activity, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,19 +18,16 @@ import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { cn } from "@/lib/utils/cn";
 import type { MachineInfoRow } from "@/lib/api/machineInfo";
 
-type PaginationInfo = {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
-
 type Props = {
   data: MachineInfoRow[];
   isLoading?: boolean;
   toolbar?: ReactNode;
-  pagination?: PaginationInfo;
-  onPageChange?: (page: number) => void;
+  infiniteScroll?: {
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    fetchNextPage: () => void;
+    totalCount?: number;
+  };
 };
 
 const SKELETON_COUNT = 3;
@@ -40,9 +36,29 @@ export function MachineStatusTable({
   data,
   isLoading,
   toolbar,
-  pagination,
-  onPageChange,
+  infiniteScroll,
 }: Props) {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!infiniteScroll) return;
+    const { hasNextPage, isFetchingNextPage, fetchNextPage } = infiniteScroll;
+    if (!hasNextPage) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [infiniteScroll]);
   return (
     <div className="space-y-4">
       {toolbar && (
@@ -205,30 +221,22 @@ export function MachineStatusTable({
         </div>
       )}
 
-      {pagination && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Page {pagination.page} of {pagination.totalPages} &mdash;{" "}
-            {pagination.total} total
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => onPageChange?.(pagination.page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => onPageChange?.(pagination.page + 1)}
-            >
-              Next
-            </Button>
-          </div>
+      {infiniteScroll && (
+        <div className="flex flex-col items-center gap-2 py-2 text-sm text-muted-foreground">
+          {infiniteScroll.isFetchingNextPage && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" />
+              Loading more...
+            </div>
+          )}
+          {!infiniteScroll.hasNextPage && data.length > 0 && (
+            <span>
+              {typeof infiniteScroll.totalCount === "number"
+                ? `All ${infiniteScroll.totalCount} loaded`
+                : "End of list"}
+            </span>
+          )}
+          <div ref={sentinelRef} aria-hidden className="h-px w-full" />
         </div>
       )}
     </div>

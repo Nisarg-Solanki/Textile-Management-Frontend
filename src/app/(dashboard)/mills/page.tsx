@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,21 +44,17 @@ export default function MillsPage() {
 
   const search = searchParams.get("search") ?? undefined;
   const status = parseStatus(searchParams.get("status"));
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [deleteTarget, setDeleteTarget] = useState<Mill | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["mills", { search, status, page, limit: LIMIT }],
-    queryFn: () => getMills({ search, status, page, limit: LIMIT }),
-  });
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<Mill, { search?: string; status?: "active" | "inactive" }>({
+      queryKey: ["mills"],
+      params: { search, status },
+      limit: LIMIT,
+      fetcher: getMills,
+    });
 
   function handleStatusChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -66,7 +63,6 @@ export default function MillsPage() {
     } else {
       params.set("status", value);
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -162,10 +158,14 @@ export default function MillsPage() {
       <div className="space-y-4">
         <DataTable
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search mills..." className="flex-1 min-w-[180px]" />

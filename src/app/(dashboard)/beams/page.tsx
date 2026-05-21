@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,34 +45,35 @@ export default function BeamsPage() {
   const meterMaxRaw = searchParams.get("meter_max");
   const meter_min = meterMinRaw ? Number(meterMinRaw) : undefined;
   const meter_max = meterMaxRaw ? Number(meterMaxRaw) : undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["beams", search, qualityId, firmId, meter_min, meter_max, page],
-    queryFn: () =>
-      getBeams({ search, qualityId, firmId, meter_min, meter_max, page, limit: LIMIT }),
-  });
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<Beam, {
+      search?: string;
+      qualityId?: string;
+      firmId?: string;
+      meter_min?: number;
+      meter_max?: number;
+    }>({
+      queryKey: ["beams"],
+      params: { search, qualityId, firmId, meter_min, meter_max },
+      limit: LIMIT,
+      fetcher: getBeams,
+    });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   const qualityOptions = Array.from(
     new Map(
-      (data?.data ?? [])
+      items
         .filter((b) => b.beamQuality)
         .map((b) => [b.beamQuality!.id, b.beamQuality!])
     ).values()
   ).map((q) => ({ value: q.id, label: q.name }));
 
-  const deleteBeam = data?.data.find((b) => b.id === deleteId);
-
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
+  const deleteBeam = items.find((b) => b.id === deleteId);
 
   function handleQualityChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -80,7 +82,6 @@ export default function BeamsPage() {
     } else {
       params.set("qualityId", value);
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -91,7 +92,6 @@ export default function BeamsPage() {
     } else {
       params.delete("meter_min");
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -102,7 +102,6 @@ export default function BeamsPage() {
     } else {
       params.delete("meter_max");
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -218,10 +217,14 @@ export default function BeamsPage() {
       <div className="space-y-4">
         <DataTable
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search beams..." className="flex-1 min-w-[180px]" />

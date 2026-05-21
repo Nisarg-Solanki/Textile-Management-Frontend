@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,13 +34,20 @@ export default function TakasPage() {
   const meterMaxRaw = searchParams.get("meter_max");
   const meter_min = meterMinRaw ? Number(meterMinRaw) : undefined;
   const meter_max = meterMaxRaw ? Number(meterMaxRaw) : undefined;
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["takas", search, beam_no, meter_min, meter_max, firmId, page],
-    queryFn: () =>
-      getTakas({ search, beam_no, meter_min, meter_max, firmId, page, limit: LIMIT }),
-  });
+  const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteList<Taka, {
+      search?: string;
+      beam_no?: string;
+      meter_min?: number;
+      meter_max?: number;
+      firmId?: string;
+    }>({
+      queryKey: ["takas"],
+      params: { search, beam_no, meter_min, meter_max, firmId },
+      limit: LIMIT,
+      fetcher: getTakas,
+    });
 
   const { data: firmsData } = useQuery({
     queryKey: ["firms-all"],
@@ -51,12 +59,6 @@ export default function TakasPage() {
     label: f.firmName,
   }));
 
-  function handlePageChange(newPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(newPage));
-    router.push(`?${params.toString()}`);
-  }
-
   function handleBeamNoChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
@@ -64,7 +66,6 @@ export default function TakasPage() {
     } else {
       params.delete("beam_no");
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -75,7 +76,6 @@ export default function TakasPage() {
     } else {
       params.delete("meter_min");
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -86,7 +86,6 @@ export default function TakasPage() {
     } else {
       params.delete("meter_max");
     }
-    params.set("page", "1");
     router.push(`?${params.toString()}`);
   }
 
@@ -147,10 +146,14 @@ export default function TakasPage() {
       <div className="space-y-4">
         <DataTable
           columns={columns}
-          data={data?.data ?? []}
+          data={items}
           isLoading={isLoading}
-          pagination={data?.pagination}
-          onPageChange={handlePageChange}
+          infiniteScroll={{
+            hasNextPage,
+            isFetchingNextPage,
+            fetchNextPage,
+            totalCount,
+          }}
           toolbar={
             <>
               <SearchBar placeholder="Search takas..." className="flex-1 min-w-[180px]" />
