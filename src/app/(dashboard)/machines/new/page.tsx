@@ -20,9 +20,10 @@ export default function NewMachinePage() {
     try {
       await createMachineAction(data);
       toast.success("Machine created successfully");
-      router.push(ROUTES.MACHINES.LIST);
+      // router.push(ROUTES.MACHINES.LIST);
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsLoading(false);
     }

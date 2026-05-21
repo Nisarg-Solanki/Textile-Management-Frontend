@@ -51,6 +51,7 @@ export default function EditBeamPage() {
       router.push(ROUTES.BEAMS.DETAIL(id));
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }

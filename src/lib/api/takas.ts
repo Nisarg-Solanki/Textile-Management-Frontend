@@ -4,6 +4,7 @@ export type Taka = {
   id: string;
   firmId: string;
   takaSrNo: string;
+  takaNo: string;
   takaMeter: number;
   beamId: string;
   productionInfoId: string;

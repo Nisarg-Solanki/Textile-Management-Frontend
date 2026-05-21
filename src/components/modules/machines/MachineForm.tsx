@@ -49,10 +49,15 @@ export function MachineForm({ defaultValues, onSubmit, isLoading }: Props) {
   }));
 
   async function handleSubmit(values: FormValues) {
-    await onSubmit({
-      ...values,
-      status: values.status ? "active" : "inactive",
-    });
+    try {
+      await onSubmit({
+        ...values,
+        status: values.status ? "active" : "inactive",
+      });
+      form.reset();
+    } catch {
+      // parent already showed the error toast — don't reset
+    }
   }
 
   return (

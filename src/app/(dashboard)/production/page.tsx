@@ -111,6 +111,10 @@ export default function ProductionPage() {
         header: "Taka Sr No",
       },
       {
+        accessorKey: "takaNo",
+        header: "Taka No",
+      },
+      {
         id: "machine",
         header: "Machine",
         cell: ({ row }) => row.original.machine?.machineNo ?? "—",

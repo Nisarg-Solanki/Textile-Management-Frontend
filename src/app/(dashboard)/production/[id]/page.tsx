@@ -87,11 +87,12 @@ export default function ProductionDetailPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <DetailSkeleton rows={9} />
+              <DetailSkeleton rows={10} />
             ) : record ? (
               <>
                 <DetailRow label="Entry Date" value={formatDate(record.entryDate)} />
                 <DetailRow label="Taka Sr No" value={record.takaSrNo} />
+                <DetailRow label="Taka No" value={record.takaNo} />
                 <DetailRow label="Firm" value={record.firm?.firmName} />
                 <DetailRow
                   label="Machine"

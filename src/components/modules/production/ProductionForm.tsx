@@ -121,7 +121,24 @@ export function ProductionForm({
       });
       return;
     }
-    await onSubmit(data);
+    try {
+      await onSubmit(data);
+      form.reset({
+        firmId: "",
+        machineId: "",
+        beamId: "",
+        entryDate: new Date(),
+        takaSrNo: "",
+        takaNo: "",
+        takaMeter: undefined,
+        productionQualityId: "",
+        weight: undefined,
+        remark: "",
+        productionChallanNo: "",
+      });
+    } catch {
+      // parent already showed the error toast — don't reset
+    }
   }
 
   function handleQualityCreated(newQuality: { id: string; name: string }) {

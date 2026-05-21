@@ -48,10 +48,19 @@ export function BeamForm({ defaultValues, onSubmit, isLoading }: Props) {
     form.setValue("beamQualityId", quality.id);
   }
 
+  async function handleSubmit(data: CreateBeamInput) {
+    try {
+      await onSubmit(data);
+      form.reset();
+    } catch {
+      // parent already showed the error toast — don't reset
+    }
+  }
+
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <InputField
               control={form.control}

@@ -48,6 +48,7 @@ export default function EditMachinePage() {
       router.push(ROUTES.MACHINES.DETAIL(id));
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }

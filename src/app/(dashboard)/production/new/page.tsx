@@ -20,9 +20,10 @@ export default function NewProductionPage() {
     try {
       await createProductionAction(data);
       toast.success("Production record created");
-      router.push(ROUTES.PRODUCTION.LIST);
+      // router.push(ROUTES.PRODUCTION.LIST);
     } catch (err) {
       showErrorToast(err);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
@@ -30,7 +31,10 @@ export default function NewProductionPage() {
 
   return (
     <PermissionGate module="production" action="create">
-      <PageHeader title="Add Production Record" backHref={ROUTES.PRODUCTION.LIST} />
+      <PageHeader
+        title="Add Production Record"
+        backHref={ROUTES.PRODUCTION.LIST}
+      />
       <ProductionForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PermissionGate>
   );

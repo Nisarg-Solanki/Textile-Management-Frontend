@@ -97,6 +97,10 @@ export default function TakasPage() {
         header: "Taka Sr No",
       },
       {
+        accessorKey: "takaNo",
+        header: "Taka No",
+      },
+      {
         id: "beam",
         header: "Beam No",
         cell: ({ row }) => row.original.beam?.beamNo ?? "—",
