@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:types": "openapi-typescript http://localhost:4000/api/v1/api-docs.json -o src/types/api.d.ts",
+    "generate:types": "node scripts/generate-types.mjs",
     "prebuild": "npm run generate:types"
   },
   "dependencies": {
