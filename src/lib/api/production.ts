@@ -20,6 +20,7 @@ export type ProductionInfo = {
   millOutvertId?: string;
   millInvertId?: string;
   millOutvertDate?: string;
+  millInvertDate?: string;
   millChallanNo?: string;
   millName?: string;
   createdAt: string;

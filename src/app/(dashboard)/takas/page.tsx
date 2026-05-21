@@ -14,6 +14,7 @@ import { SearchBar } from "@/components/data/SearchBar";
 import { FilterPanel } from "@/components/data/FilterPanel";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
+import { MillStatusBadge } from "@/components/common/MillStatusBadge";
 import { getTakas } from "@/lib/api/takas";
 import { getFirms } from "@/lib/api/firms";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
@@ -118,6 +119,16 @@ export default function TakasPage() {
         id: "createdAt",
         header: "Created At",
         cell: ({ row }) => formatDate(row.original.createdAt),
+      },
+      {
+        id: "millStatus",
+        header: "Mill Status",
+        cell: ({ row }) => (
+          <MillStatusBadge
+            millOutvertDate={row.original.productionInfo?.millOutvertDate}
+            millInvertId={row.original.productionInfo?.millInvertId}
+          />
+        ),
       },
       {
         id: "actions",
