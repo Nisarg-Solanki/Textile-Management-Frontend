@@ -8,6 +8,9 @@ export type MillSummaryRow = {
   millName?: string;
   millOutvertId?: string;
   millInvertId?: string;
+  taka: {
+    id: string;
+  };
   millOutvert?: {
     outvertDate: string;
     firmChallanNo?: string;

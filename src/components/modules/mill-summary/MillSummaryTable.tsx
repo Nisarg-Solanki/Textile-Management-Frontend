@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/data/DataTable";
 import { formatDate } from "@/lib/utils/formatDate";
+import { ROUTES } from "@/lib/routes";
 import type { MillSummaryRow } from "@/lib/api/millSummary";
 
 type Props = {
@@ -68,6 +70,14 @@ export function MillSummaryTable({
       {
         accessorKey: "takaSrNo",
         header: "Taka Sr No",
+        cell: ({ row }) => (
+          <Link
+            href={ROUTES.TAKAS.DETAIL(row.original.taka.id)}
+            className="text-primary hover:underline font-medium"
+          >
+            {row.original.takaSrNo}
+          </Link>
+        ),
       },
       {
         id: "outvertDate",
