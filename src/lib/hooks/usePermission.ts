@@ -2,6 +2,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 
 type Action = "view" | "create" | "edit" | "delete";
 type Module =
+  | "dashboard"
   | "firms"
   | "mills"
   | "beam_qualities"

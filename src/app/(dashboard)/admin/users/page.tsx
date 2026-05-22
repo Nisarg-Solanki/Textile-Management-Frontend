@@ -95,18 +95,22 @@ export default function UsersPage() {
         header: "Actions",
         enableHiding: false,
         enableSorting: false,
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              router.push(ROUTES.ADMIN.PERMISSIONS(row.original.id))
-            }
-          >
-            <Shield className="mr-1.5 size-4" />
-            Permissions
-          </Button>
-        ),
+        cell: ({ row }) => {
+          const isSuperAdmin = row.original.role === "super_admin";
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isSuperAdmin}
+              onClick={() =>
+                router.push(ROUTES.ADMIN.PERMISSIONS(row.original.id))
+              }
+            >
+              <Shield className="mr-1.5 size-4" />
+              Permissions
+            </Button>
+          );
+        },
       },
     ],
     [router],

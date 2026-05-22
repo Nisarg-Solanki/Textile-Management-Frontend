@@ -56,6 +56,40 @@ export type Firm = {
   updatedAt: string;
 };
 
+export type DashboardStats = {
+  totalBeams: {
+    value: number;
+    changePercent: number;
+    trend: "up" | "down";
+    label: string;
+  };
+  productionEntries: {
+    value: number;
+    changePercent: number;
+    trend: "up" | "down";
+    label: string;
+  };
+  pendingTakas: {
+    value: number;
+    requiresAttention: boolean;
+    label: string;
+  };
+};
+
+export type ProductionChartType = "daily" | "weekly" | "monthly";
+
+export type ProductionChartPoint = {
+  label: string;
+  periodStart: string;
+  periodEnd: string;
+  value: number;
+};
+
+export type ProductionChart = {
+  type: ProductionChartType;
+  points: ProductionChartPoint[];
+};
+
 export type Mill = {
   id: string;
   millName: string;
