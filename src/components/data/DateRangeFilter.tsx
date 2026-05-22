@@ -5,8 +5,6 @@ import {
   subDays,
   startOfDay,
   endOfDay,
-  startOfWeek,
-  endOfWeek,
   startOfMonth,
 } from "date-fns";
 import {
@@ -22,7 +20,7 @@ type DatePreset =
   | "all"
   | "yesterday"
   | "last_7_days"
-  | "last_week"
+  | "last_2_weeks"
   | "this_month"
   | "custom";
 
@@ -44,13 +42,11 @@ function computeRange(preset: DatePreset): {
         from: startOfDay(subDays(now, 6)).toISOString(),
         to: endOfDay(now).toISOString(),
       };
-    case "last_week": {
-      const lastWeek = subDays(now, 7);
+    case "last_2_weeks":
       return {
-        from: startOfWeek(lastWeek, { weekStartsOn: 1 }).toISOString(),
-        to: endOfWeek(lastWeek, { weekStartsOn: 1 }).toISOString(),
+        from: startOfDay(subDays(now, 13)).toISOString(),
+        to: endOfDay(now).toISOString(),
       };
-    }
     case "this_month":
       return {
         from: startOfMonth(now).toISOString(),
@@ -103,7 +99,7 @@ export function DateRangeFilter() {
             <SelectItem value="all">All Time</SelectItem>
             <SelectItem value="yesterday">Yesterday</SelectItem>
             <SelectItem value="last_7_days">Last 7 Days</SelectItem>
-            <SelectItem value="last_week">Last Week</SelectItem>
+            <SelectItem value="last_2_weeks">Last 2 Weeks</SelectItem>
             <SelectItem value="this_month">This Month</SelectItem>
             <SelectItem value="custom">Custom</SelectItem>
           </SelectContent>

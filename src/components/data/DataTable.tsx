@@ -75,6 +75,8 @@ type Props<T> = {
     fetchNextPage: () => void;
     totalCount?: number;
   };
+  // Show row index as the first column (default: true)
+  showRowIndex?: boolean;
 };
 
 function storageKey(tableId: string) {
@@ -120,15 +122,32 @@ export function DataTable<T>({
   tableId,
   onRefresh,
   infiniteScroll,
+  showRowIndex = true,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const indexColumn: ColumnDef<T> | null = useMemo(() => {
+    if (!showRowIndex) return null;
+    return {
+      id: "__index__",
+      header: "#",
+      enableHiding: false,
+      enableSorting: false,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.index + 1}</span>,
+      size: 40,
+    };
+  }, [showRowIndex]);
+
+  const displayColumns = useMemo(() => {
+    return indexColumn ? [indexColumn, ...columns] : columns;
+  }, [indexColumn, columns]);
+
   const allColumnIds = useMemo(
-    () => columns.map((c, i) => (c.id ?? ("accessorKey" in c ? String(c.accessorKey) : `col-${i}`))),
-    [columns],
+    () => displayColumns.map((c, i) => (c.id ?? ("accessorKey" in c ? String(c.accessorKey) : `col-${i}`))),
+    [displayColumns],
   );
 
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() =>
@@ -205,7 +224,7 @@ export function DataTable<T>({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: displayColumns,
     state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
@@ -223,8 +242,10 @@ export function DataTable<T>({
     { length: visibleLeafColumns.length },
     (_, i) => i,
   );
+  const displayColumnsLength = displayColumns.length;
 
   const orderedColumns = table.getAllLeafColumns();
+  const reorderableColumns = orderedColumns.filter((col) => col.id !== "__index__");
   const columnsDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -236,7 +257,7 @@ export function DataTable<T>({
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>Columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {orderedColumns.map((col, index) => {
+        {reorderableColumns.map((col, index) => {
           const canHide = col.getCanHide();
           return (
             <div
@@ -275,7 +296,7 @@ export function DataTable<T>({
                 size="icon"
                 className="size-6 shrink-0"
                 aria-label="Move column down"
-                disabled={index === orderedColumns.length - 1}
+                disabled={index === reorderableColumns.length - 1}
                 onClick={(e) => {
                   e.preventDefault();
                   moveColumn(col.id, 1);
@@ -324,7 +345,7 @@ export function DataTable<T>({
           ? skeletonRows.map((i) => (
               <Card key={i}>
                 <CardContent className="pt-4 space-y-3">
-                  {columns.map((_, j) => (
+                  {Array.from({ length: displayColumnsLength }).map((_, j) => (
                     <div key={j} className="flex justify-between gap-4">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-4 w-32" />
@@ -408,7 +429,7 @@ export function DataTable<T>({
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={displayColumnsLength}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No results.
@@ -438,29 +459,40 @@ export function DataTable<T>({
 
       {/* Infinite scroll sentinel + status — takes precedence over pagination footer */}
       {infiniteScroll ? (
-        <div className="flex flex-col items-center gap-2 py-2 text-sm text-muted-foreground">
+        <div className="flex flex-col items-center gap-2 py-4 text-sm text-muted-foreground">
           {infiniteScroll.isFetchingNextPage && (
             <div className="flex items-center gap-2">
               <Loader2 className="size-4 animate-spin" />
               Loading more...
             </div>
           )}
-          {!infiniteScroll.hasNextPage && data.length > 0 && (
-            <span>
-              {typeof infiniteScroll.totalCount === "number"
-                ? `All ${infiniteScroll.totalCount} loaded`
-                : "End of list"}
-            </span>
-          )}
+          <div className="text-center">
+            {typeof infiniteScroll.totalCount === "number" && (
+              <span className="font-medium text-foreground">
+                Total Records: {infiniteScroll.totalCount}
+              </span>
+            )}
+            {!infiniteScroll.hasNextPage && data.length > 0 && (
+              <div className="mt-1 text-muted-foreground text-xs">
+                {typeof infiniteScroll.totalCount === "number"
+                  ? `All records loaded (${infiniteScroll.totalCount})`
+                  : "End of list"}
+              </div>
+            )}
+          </div>
           <div ref={sentinelRef} aria-hidden className="h-px w-full" />
         </div>
       ) : (
         pagination && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Page {pagination.page} of {pagination.totalPages} &mdash;{" "}
-              {pagination.total} total
-            </span>
+          <div className="flex flex-col items-center justify-between gap-4 text-sm md:flex-row">
+            <div className="text-center md:text-left">
+              <span className="font-medium text-foreground block mb-1">
+                Total Records: {pagination.total}
+              </span>
+              <span className="text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"

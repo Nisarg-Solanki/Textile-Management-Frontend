@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { PermissionRow } from "@/types/app";
 
 const MODULES = [
+  { key: "dashboard", label: "Dashboard" },
   { key: "firms", label: "Firms" },
   { key: "mills", label: "Mills" },
   { key: "beam_qualities", label: "Beam Qualities" },

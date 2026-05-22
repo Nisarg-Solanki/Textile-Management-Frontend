@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PermissionGate } from "@/components/modules/PermissionGate";
+import { MillStatusBadge } from "@/components/common/MillStatusBadge";
 import { getTaka } from "@/lib/api/takas";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { formatDate } from "@/lib/utils/formatDate";
@@ -71,6 +72,41 @@ function LinkedProductionCard({ taka }: { taka: Taka }) {
   );
 }
 
+function LinkedMillInfoCard({ taka }: { taka: Taka }) {
+  const info = taka.productionInfo;
+
+  return (
+    <>
+      <DetailRow label="Mill Name" value={info?.millName} />
+      <DetailRow
+        label="Outvert Date"
+        value={
+          info?.millOutvertDate
+            ? formatDate(info.millOutvertDate)
+            : "—"
+        }
+      />
+      <DetailRow
+        label="Invert Date"
+        value={
+          info?.millInvertDate
+            ? formatDate(info.millInvertDate)
+            : "—"
+        }
+      />
+      <DetailRow
+        label="Status"
+        value={
+          <MillStatusBadge
+            millOutvertDate={info?.millOutvertDate}
+            millInvertId={info?.millInvertId}
+          />
+        }
+      />
+    </>
+  );
+}
+
 export default function TakaDetailPage() {
   const { id } = useParams<{ id: string }>();
 
@@ -106,6 +142,19 @@ export default function TakaDetailPage() {
               <DetailSkeleton rows={4} />
             ) : taka ? (
               <LinkedProductionCard taka={taka} />
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Linked Mill Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <DetailSkeleton rows={4} />
+            ) : taka ? (
+              <LinkedMillInfoCard taka={taka} />
             ) : null}
           </CardContent>
         </Card>
