@@ -61,7 +61,7 @@ export default function EditProductionPage() {
     <PermissionGate module="production" action="edit">
       <PageHeader
         title="Edit Production Record"
-        backHref={ROUTES.PRODUCTION.DETAIL(id)}
+        onBack={() => router.back()}
       />
       {isLoading ? (
         <EditProductionSkeleton />

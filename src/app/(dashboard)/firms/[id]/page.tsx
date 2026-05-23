@@ -85,7 +85,7 @@ export default function FirmDetailPage() {
     <SuperAdminGate>
       <PageHeader
         title={isLoading ? "Loading..." : (firm?.firmName ?? "Firm Details")}
-        backHref={ROUTES.FIRMS.LIST}
+        onBack={() => router.back()}
       >
         <Button
           variant="outline"

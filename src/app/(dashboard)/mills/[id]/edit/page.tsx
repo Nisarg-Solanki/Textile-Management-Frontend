@@ -55,7 +55,7 @@ export default function EditMillPage() {
 
   return (
     <SuperAdminGate>
-      <PageHeader title="Edit Mill" backHref={ROUTES.MILLS.DETAIL(id)} />
+      <PageHeader title="Edit Mill" onBack={() => router.back()} />
       {isLoading ? (
         <EditMillSkeleton />
       ) : mill ? (

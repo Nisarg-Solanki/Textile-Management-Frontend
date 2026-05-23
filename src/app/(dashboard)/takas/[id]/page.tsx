@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +10,6 @@ import { MillStatusBadge } from "@/components/common/MillStatusBadge";
 import { getTaka } from "@/lib/api/takas";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { formatDate } from "@/lib/utils/formatDate";
-import { ROUTES } from "@/lib/routes";
 import type { Taka } from "@/lib/api/takas";
 import type { ReactNode } from "react";
 
@@ -109,6 +108,7 @@ function LinkedMillInfoCard({ taka }: { taka: Taka }) {
 
 export default function TakaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
   const { data: taka, isLoading } = useQuery({
     queryKey: ["taka", id],
@@ -117,7 +117,7 @@ export default function TakaDetailPage() {
 
   return (
     <PermissionGate module="takas" action="view">
-      <PageHeader title="Taka Detail" backHref={ROUTES.TAKAS.LIST} />
+      <PageHeader title="Taka Detail" onBack={() => router.back()} />
 
       <div className="grid max-w-3xl gap-6 md:grid-cols-2">
         <Card>

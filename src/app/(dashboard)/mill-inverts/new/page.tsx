@@ -33,7 +33,7 @@ export default function NewMillInvertPage() {
 
   return (
     <PermissionGate module="mill_inverts" action="create">
-      <PageHeader title="Add Mill Invert" backHref={ROUTES.MILL_INVERTS.LIST} />
+      <PageHeader title="Add Mill Invert" onBack={() => router.back()} />
       <MillInvertForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PermissionGate>
   );

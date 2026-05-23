@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,6 @@ import { getPermissions } from "@/lib/api/permissions";
 import { updatePermissionsAction } from "@/lib/actions/permissions.actions";
 import { updatePermissionsSchema } from "@/lib/schemas/permission.schema";
 import { showErrorToast } from "@/lib/utils/handleError";
-import { ROUTES } from "@/lib/routes";
 
 const formSchema = z.object({
   permissions: updatePermissionsSchema,
@@ -27,6 +26,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function ManagePermissionsPage() {
   const { userId } = useParams<{ userId: string }>();
+  const router = useRouter();
 
   const { data: queryData, isLoading } = useQuery({
     queryKey: ["permissions", userId],
@@ -60,7 +60,7 @@ export default function ManagePermissionsPage() {
     <SuperAdminGate>
       <PageHeader
         title="Manage Permissions"
-        backHref={ROUTES.ADMIN.USERS}
+        onBack={() => router.back()}
       />
 
       {isLoading && (

@@ -62,7 +62,7 @@ export default function MillInvertDetailPage() {
 
   return (
     <PermissionGate module="mill_inverts" action="view">
-      <PageHeader title="Mill Invert Detail" backHref={ROUTES.MILL_INVERTS.LIST}>
+      <PageHeader title="Mill Invert Detail" onBack={() => router.back()}>
         <PermissionGate module="mill_inverts" action="edit">
           <Button
             variant="outline"

@@ -76,7 +76,7 @@ export default function MillDetailPage() {
     <SuperAdminGate>
       <PageHeader
         title={isLoading ? "Loading..." : (mill?.millName ?? "Mill Details")}
-        backHref={ROUTES.MILLS.LIST}
+        onBack={() => router.back()}
       >
         <Button
           variant="outline"

@@ -8,7 +8,6 @@ import { PermissionGate } from "@/components/modules/PermissionGate";
 import { ProductionForm } from "@/components/modules/production/ProductionForm";
 import { createProductionAction } from "@/lib/actions/production.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
-import { ROUTES } from "@/lib/routes";
 import type { CreateProductionInput } from "@/lib/schemas/production.schema";
 
 export default function NewProductionPage() {
@@ -33,7 +32,7 @@ export default function NewProductionPage() {
     <PermissionGate module="production" action="create">
       <PageHeader
         title="Add Production Record"
-        backHref={ROUTES.PRODUCTION.LIST}
+        onBack={() => router.back()}
       />
       <ProductionForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PermissionGate>

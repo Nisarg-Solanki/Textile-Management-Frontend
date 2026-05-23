@@ -28,9 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { useFirms } from "@/lib/hooks/useFirms";
+import { ROUTES } from "@/lib/routes";
 import { getDashboardStats, getProductionChart } from "@/lib/api/dashboard";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { cn } from "@/lib/utils/cn";
@@ -93,6 +95,7 @@ export default function DashboardPage() {
           value={stats?.pendingTakas.value}
           attentionLabel={stats?.pendingTakas.label}
           requiresAttention={stats?.pendingTakas.requiresAttention}
+          href={`${ROUTES.MILL_SUMMARY}?status=not_sent`}
         />
       </div>
 
@@ -200,6 +203,7 @@ type StatCardProps = {
   label?: string;
   attentionLabel?: string;
   requiresAttention?: boolean;
+  href?: string;
 };
 
 function StatCard({
@@ -212,9 +216,14 @@ function StatCard({
   label,
   attentionLabel,
   requiresAttention,
+  href,
 }: StatCardProps) {
-  return (
-    <Card>
+  const card = (
+    <Card
+      className={cn(
+        href && "cursor-pointer transition-colors hover:bg-muted/50",
+      )}
+    >
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -270,4 +279,9 @@ function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }

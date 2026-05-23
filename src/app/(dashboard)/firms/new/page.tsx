@@ -30,7 +30,7 @@ export default function NewFirmPage() {
 
   return (
     <SuperAdminGate>
-      <PageHeader title="Add Firm" backHref={ROUTES.FIRMS.LIST} />
+      <PageHeader title="Add Firm" onBack={() => router.back()} />
       <FirmForm onSubmit={handleSubmit} isLoading={isLoading} />
     </SuperAdminGate>
   );

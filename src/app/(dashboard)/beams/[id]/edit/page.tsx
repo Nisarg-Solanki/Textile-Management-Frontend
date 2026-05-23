@@ -59,7 +59,7 @@ export default function EditBeamPage() {
 
   return (
     <PermissionGate module="beams" action="edit">
-      <PageHeader title="Edit Beam" backHref={ROUTES.BEAMS.DETAIL(id)} />
+      <PageHeader title="Edit Beam" onBack={() => router.back()} />
       {isLoading ? (
         <EditBeamSkeleton />
       ) : beam ? (
