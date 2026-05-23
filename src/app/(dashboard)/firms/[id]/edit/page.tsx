@@ -58,7 +58,7 @@ export default function EditFirmPage() {
 
   return (
     <SuperAdminGate>
-      <PageHeader title="Edit Firm" backHref={ROUTES.FIRMS.DETAIL(id)} />
+      <PageHeader title="Edit Firm" onBack={() => router.back()} />
       {isLoading ? (
         <EditFirmSkeleton />
       ) : firm ? (

@@ -33,7 +33,7 @@ export default function NewMillOutvertPage() {
 
   return (
     <PermissionGate module="mill_outverts" action="create">
-      <PageHeader title="Add Mill Outvert" backHref={ROUTES.MILL_OUTVERTS.LIST} />
+      <PageHeader title="Add Mill Outvert" onBack={() => router.back()} />
       <MillOutvertForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PermissionGate>
   );

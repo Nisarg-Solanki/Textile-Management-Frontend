@@ -62,7 +62,7 @@ export default function MillOutvertDetailPage() {
 
   return (
     <PermissionGate module="mill_outverts" action="view">
-      <PageHeader title="Mill Outvert Detail" backHref={ROUTES.MILL_OUTVERTS.LIST}>
+      <PageHeader title="Mill Outvert Detail" onBack={() => router.back()}>
         <PermissionGate module="mill_outverts" action="edit">
           <Button
             variant="outline"

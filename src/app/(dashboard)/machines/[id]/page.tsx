@@ -76,7 +76,7 @@ export default function MachineDetailPage() {
     <PermissionGate module="machines" action="view">
       <PageHeader
         title={isLoading ? "Loading..." : (machine?.machineNo ?? "Machine Details")}
-        backHref={ROUTES.MACHINES.LIST}
+        onBack={() => router.back()}
       >
         <PermissionGate module="machines" action="edit">
           <Button

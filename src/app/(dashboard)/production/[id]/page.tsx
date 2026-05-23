@@ -67,7 +67,7 @@ export default function ProductionDetailPage() {
 
   return (
     <PermissionGate module="production" action="view">
-      <PageHeader title="Production Detail" backHref={ROUTES.PRODUCTION.LIST}>
+      <PageHeader title="Production Detail" onBack={() => router.back()}>
         <PermissionGate module="production" action="edit">
           <Button
             variant="outline"

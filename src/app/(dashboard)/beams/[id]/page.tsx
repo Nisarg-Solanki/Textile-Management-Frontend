@@ -70,7 +70,7 @@ export default function BeamDetailPage() {
     <PermissionGate module="beams" action="view">
       <PageHeader
         title={isLoading ? "Loading..." : (beam?.beamNo ?? "Beam Details")}
-        backHref={ROUTES.BEAMS.LIST}
+        onBack={() => router.back()}
       >
         <PermissionGate module="beams" action="edit">
           <Button

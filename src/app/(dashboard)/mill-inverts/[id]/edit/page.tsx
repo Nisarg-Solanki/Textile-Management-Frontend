@@ -68,7 +68,7 @@ export default function EditMillInvertPage() {
     <PermissionGate module="mill_inverts" action="edit">
       <PageHeader
         title="Edit Mill Invert"
-        backHref={ROUTES.MILL_INVERTS.DETAIL(id)}
+        onBack={() => router.back()}
       />
       {isLoading ? (
         <EditMillInvertSkeleton />

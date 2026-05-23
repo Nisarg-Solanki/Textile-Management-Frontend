@@ -56,7 +56,7 @@ export default function EditMachinePage() {
 
   return (
     <PermissionGate module="machines" action="edit">
-      <PageHeader title="Edit Machine" backHref={ROUTES.MACHINES.DETAIL(id)} />
+      <PageHeader title="Edit Machine" onBack={() => router.back()} />
       {isLoading ? (
         <EditMachineSkeleton />
       ) : machine ? (

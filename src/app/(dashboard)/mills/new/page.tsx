@@ -30,7 +30,7 @@ export default function NewMillPage() {
 
   return (
     <SuperAdminGate>
-      <PageHeader title="Add Mill" backHref={ROUTES.MILLS.LIST} />
+      <PageHeader title="Add Mill" onBack={() => router.back()} />
       <MillForm onSubmit={handleSubmit} isLoading={isLoading} />
     </SuperAdminGate>
   );

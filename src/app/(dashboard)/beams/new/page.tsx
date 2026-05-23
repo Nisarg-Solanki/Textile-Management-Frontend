@@ -31,7 +31,7 @@ export default function NewBeamPage() {
 
   return (
     <PermissionGate module="beams" action="create">
-      <PageHeader title="Add Beam" backHref={ROUTES.BEAMS.LIST} />
+      <PageHeader title="Add Beam" onBack={() => router.back()} />
       <BeamForm onSubmit={handleSubmit} isLoading={isLoading} />
     </PermissionGate>
   );

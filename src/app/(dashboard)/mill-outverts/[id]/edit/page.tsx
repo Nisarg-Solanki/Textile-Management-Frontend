@@ -68,7 +68,7 @@ export default function EditMillOutvertPage() {
     <PermissionGate module="mill_outverts" action="edit">
       <PageHeader
         title="Edit Mill Outvert"
-        backHref={ROUTES.MILL_OUTVERTS.DETAIL(id)}
+        onBack={() => router.back()}
       />
       {isLoading ? (
         <EditMillOutvertSkeleton />

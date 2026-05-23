@@ -31,7 +31,7 @@ export default function NewMachinePage() {
 
   return (
     <PermissionGate module="machines" action="create">
-      <PageHeader title="Add Machine" backHref={ROUTES.MACHINES.LIST} />
+      <PageHeader title="Add Machine" onBack={() => router.back()} />
       <MachineForm onSubmit={handleSubmit} isLoading={isLoading} />
     </PermissionGate>
   );
