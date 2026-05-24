@@ -83,6 +83,11 @@ frontend/
 │   ├── app/
 │   │   ├── layout.tsx                     # Root — ThemeProvider, QueryProvider, Toaster
 │   │   ├── globals.css                    # CSS variables for light/dark + Tailwind base
+│   │   ├── not-found.tsx
+│   │   ├── api/
+│   │   │   └── auth/
+│   │   │       ├── refresh/route.ts       # Proxies POST /auth/refresh — reads HttpOnly cookie server-side
+│   │   │       └── clear/route.ts         # Server route that deletes the refreshToken cookie
 │   │   ├── (auth)/
 │   │   │   ├── layout.tsx                 # Redirect to /dashboard if already logged in
 │   │   │   ├── login/page.tsx
@@ -91,9 +96,11 @@ frontend/
 │   │   │   └── reset-password/page.tsx
 │   │   └── (dashboard)/
 │   │       ├── layout.tsx                 # Auth guard + sidebar + header
-│   │       ├── page.tsx                   # Dashboard overview
+│   │       ├── page.tsx                   # Dashboard root (group landing)
+│   │       ├── dashboard/page.tsx         # Dashboard overview — stats cards + production chart
 │   │       ├── admin/                     # super_admin only
 │   │       │   ├── pending-users/page.tsx
+│   │       │   ├── users/page.tsx
 │   │       │   └── permissions/
 │   │       │       └── [userId]/page.tsx
 │   │       ├── firms/
@@ -160,16 +167,20 @@ frontend/
 │   │   │   └── slider.tsx
 │   │   ├── common/                        # Generic reusable across ALL modules
 │   │   │   ├── FormDialog.tsx             # Generic create/edit dialog wrapper
-│   │   │   └── ConfirmDialog.tsx          # Generic delete confirmation dialog
+│   │   │   ├── ConfirmDialog.tsx          # Generic delete confirmation dialog
+│   │   │   ├── FieldOrderButton.tsx       # Dropdown with up/down arrows — drives OrderedFields
+│   │   │   └── MillStatusBadge.tsx        # Not Sent / At Mill / Returned status pill
 │   │   ├── layout/
 │   │   │   ├── Sidebar.tsx                # Permission-aware nav
 │   │   │   ├── Header.tsx                 # Breadcrumb + user menu + theme toggle
 │   │   │   ├── MobileNav.tsx              # Bottom tab bar on mobile
-│   │   │   └── PageHeader.tsx             # Title + primary action button
+│   │   │   └── PageHeader.tsx             # Title + primary action + HEADER_ACTIONS_SLOT_ID portal target
 │   │   ├── data/
 │   │   │   ├── DataTable.tsx              # Generic TanStack Table
 │   │   │   ├── SearchBar.tsx              # Debounced — updates URL params
 │   │   │   ├── FilterPanel.tsx            # Collapsible — updates URL params
+│   │   │   ├── FirmFilter.tsx             # Segmented firm picker — updates ?firmId= in URL
+│   │   │   ├── DateRangeFilter.tsx        # From/To date pickers — updates URL params
 │   │   │   ├── EmptyState.tsx
 │   │   │   └── ErrorState.tsx
 │   │   ├── forms/
@@ -177,10 +188,19 @@ frontend/
 │   │   │   ├── SelectField.tsx            # RHF-integrated searchable combobox + optional "+" button
 │   │   │   ├── SwitchField.tsx            # RHF-integrated switch/toggle
 │   │   │   ├── DatePickerField.tsx        # Calendar + Popover — never use native date input
+│   │   │   ├── OrderedFields.tsx          # Renders fields in a user-customisable order (localStorage)
 │   │   │   └── SubmitButton.tsx           # Button with loading spinner
 │   │   └── modules/
 │   │       ├── PermissionGate.tsx
 │   │       ├── SuperAdminGate.tsx
+│   │       ├── firms/
+│   │       │   └── FirmForm.tsx           # Shared create/edit form for /firms/new and /firms/[id]/edit
+│   │       ├── mills/
+│   │       │   └── MillForm.tsx
+│   │       ├── machines/
+│   │       │   └── MachineForm.tsx
+│   │       ├── beams/
+│   │       │   └── BeamForm.tsx
 │   │       ├── beam-qualities/
 │   │       │   └── BeamQualityDialog.tsx  # Create/edit dialog — used in list page AND inline from beam form
 │   │       ├── production-qualities/
@@ -200,14 +220,16 @@ frontend/
 │   │           └── PendingUserCard.tsx
 │   ├── lib/
 │   │   ├── routes.ts                      # SINGLE SOURCE OF TRUTH for all route paths
+│   │   ├── utils.ts                       # shadcn-style cn re-export (kept for shadcn CLI compat)
 │   │   ├── api/
 │   │   │   ├── client.ts                  # Axios instance — baseURL, interceptors, refresh
 │   │   │   ├── request.ts                 # Central typed request helper
-│   │   │   ├── auth.ts
+│   │   │   ├── auth.ts                    # Auth API — login, refresh, permissions, buildSession, refreshSession
+│   │   │   ├── dashboard.ts               # Dashboard stats + production chart endpoints
 │   │   │   ├── firms.ts
 │   │   │   ├── mills.ts
-│   │   │   ├── beamQualities.ts           # NEW
-│   │   │   ├── productionQualities.ts     # NEW
+│   │   │   ├── beamQualities.ts
+│   │   │   ├── productionQualities.ts
 │   │   │   ├── machines.ts
 │   │   │   ├── beams.ts
 │   │   │   ├── production.ts
@@ -217,12 +239,12 @@ frontend/
 │   │   │   ├── machineInfo.ts
 │   │   │   ├── millSummary.ts
 │   │   │   └── permissions.ts
-│   │   ├── actions/                       # Next.js Server Actions
-│   │   │   ├── auth.actions.ts
+│   │   ├── actions/                       # Plain client-callable async wrappers (NOT "use server" — except auth)
+│   │   │   ├── auth.actions.ts            # "use server" — loginAction, logoutAction, clearSessionCookieAction
 │   │   │   ├── firms.actions.ts
 │   │   │   ├── mills.actions.ts
-│   │   │   ├── beamQualities.actions.ts   # NEW
-│   │   │   ├── productionQualities.actions.ts # NEW
+│   │   │   ├── beamQualities.actions.ts
+│   │   │   ├── productionQualities.actions.ts
 │   │   │   ├── machines.actions.ts
 │   │   │   ├── beams.actions.ts
 │   │   │   ├── production.actions.ts
@@ -233,7 +255,11 @@ frontend/
 │   │   │   ├── useAuth.ts
 │   │   │   ├── usePermission.ts           # hasPermission(module, action)
 │   │   │   ├── useDebounce.ts
-│   │   │   └── useQueryParams.ts
+│   │   │   ├── useQueryParams.ts
+│   │   │   ├── useFirms.ts                # Cached firms list + dropdown options
+│   │   │   ├── useInfiniteList.ts         # Generic TanStack useInfiniteQuery wrapper for PaginatedResponse
+│   │   │   ├── useFieldOrder.ts           # Persists per-form field order to localStorage
+│   │   │   └── use-mobile.tsx             # md breakpoint detector
 │   │   ├── store/
 │   │   │   └── authStore.ts               # Zustand: { user, accessToken, permissions }
 │   │   ├── providers/
@@ -243,13 +269,14 @@ frontend/
 │   │   │   ├── auth.schema.ts
 │   │   │   ├── firm.schema.ts
 │   │   │   ├── mill.schema.ts
-│   │   │   ├── beamQuality.schema.ts      # NEW
-│   │   │   ├── productionQuality.schema.ts # NEW
+│   │   │   ├── beamQuality.schema.ts
+│   │   │   ├── productionQuality.schema.ts
 │   │   │   ├── machine.schema.ts
 │   │   │   ├── beam.schema.ts             # uses beamQualityId (FK) not beamQuality (string)
 │   │   │   ├── production.schema.ts       # uses productionQualityId (FK) not productionQuality (string)
 │   │   │   ├── millOutvert.schema.ts
-│   │   │   └── millInvert.schema.ts
+│   │   │   ├── millInvert.schema.ts
+│   │   │   └── permission.schema.ts
 │   │   └── utils/
 │   │       ├── formatDate.ts
 │   │       ├── formatDecimal.ts
@@ -259,22 +286,19 @@ frontend/
 │   │   ├── api.d.ts                       # OPTIONAL — generated via `npm run generate:types`, reference only, git-ignored
 │   │   └── app.ts                         # Manual shared types: domain entities used across multiple modules
 │   └── middleware.ts                      # Server-side auth guard + role redirect
-├── tests/
-│   └── e2e/
-│       ├── auth.spec.ts
-│       ├── permissions.spec.ts
-│       ├── firms.spec.ts
-│       ├── beams.spec.ts
-│       ├── production.spec.ts
-│       └── mill-flow.spec.ts
+├── scripts/
+│   └── generate-types.mjs                 # Hits OpenAPI JSON, writes src/types/api.d.ts
 ├── public/
 │   └── logo.svg
-├── playwright.config.ts
 ├── tailwind.config.ts
 ├── next.config.ts
 ├── tsconfig.json
 └── package.json
 ```
+
+> No `tests/` directory or `playwright.config.ts` is checked in yet. `@playwright/test`
+> is installed as a dev dependency — when adding E2E coverage, scaffold the config and
+> a `tests/e2e/` folder before writing specs.
 
 ---
 
@@ -286,6 +310,9 @@ All route paths live in one file. Import from `@/lib/routes` everywhere — neve
 // src/lib/routes.ts
 
 export const ROUTES = {
+  // Home (group landing inside (dashboard))
+  HOME: "/",
+
   // Auth
   LOGIN: "/login",
   REGISTER: "/register",
@@ -298,6 +325,7 @@ export const ROUTES = {
   // Admin — super_admin only
   ADMIN: {
     PENDING_USERS: "/admin/pending-users",
+    USERS: "/admin/users",
     PERMISSIONS: (userId: string) => `/admin/permissions/${userId}`,
   },
 
@@ -426,10 +454,10 @@ npx shadcn@latest add accordion alert-dialog alert avatar badge breadcrumb butto
 
 Types come from **two sources**, depending on what the backend OpenAPI spec exposes:
 
-| Source | What it covers | Where it lives |
-| --- | --- | --- |
-| Generated (`api.d.ts`) | **Request body shapes** for all POST/PUT endpoints + query/path params | `src/types/api.d.ts` (git-ignored, generated) |
-| Manual | **Response/domain types** — the backend spec has `content?: never` on all responses | `src/types/app.ts` |
+| Source                 | What it covers                                                                      | Where it lives                                |
+| ---------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| Generated (`api.d.ts`) | **Request body shapes** for all POST/PUT endpoints + query/path params              | `src/types/api.d.ts` (git-ignored, generated) |
+| Manual                 | **Response/domain types** — the backend spec has `content?: never` on all responses | `src/types/app.ts`                            |
 
 **`src/types/app.ts` is the single import point for all application types.** It imports generated shapes from `api.d.ts` and re-exports them alongside manual types. Application code always imports from `@/types/app`, never directly from `@/types/api`.
 
@@ -736,6 +764,12 @@ export async function refreshSession(): Promise<Session> {
   fetched separately via `getPermissionsFor` — already wired inside `buildSession`.
 - Super-admins skip the permissions fetch entirely; they get `true` from
   `usePermission` regardless of stored permissions.
+- The `refresh()` helper does NOT hit the backend directly. It posts to the
+  local `/api/auth/refresh` Next.js route handler ([src/app/api/auth/refresh/route.ts](src/app/api/auth/refresh/route.ts)),
+  which reads the HttpOnly `refreshToken` cookie via `next/headers` and forwards
+  it to the backend as a `Cookie:` header. This is required in production where
+  the frontend and backend live on different origins and the browser will not
+  send the frontend-domain cookie cross-origin.
 - If the backend later adds fields to the refresh response or a `/auth/me`
   endpoint, **only `refresh()` and `refreshSession()` change** — no consumer needs
   to know.
@@ -792,6 +826,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 
 type Action = "view" | "create" | "edit" | "delete";
 type Module =
+  | "dashboard"
   | "firms"
   | "mills"
   | "beam_qualities"
@@ -826,7 +861,7 @@ export function usePermission(module: Module, action: Action): boolean {
 
 export function useIsSuperAdmin(): boolean {
   const user = useAuthStore((s) => s.user);
-  return user?.role === "super_admin" ?? false;
+  return user?.role === "super_admin";
 }
 ```
 
@@ -870,10 +905,14 @@ const PUBLIC_PATHS = [
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Escape hatch: the client appends ?session=expired when refreshSession()
+  // fails and the stale refreshToken cookie could not be deleted. Without it
+  // we would ping-pong between /login → /dashboard → /login forever.
+  const sessionExpired = req.nextUrl.searchParams.get("session") === "expired";
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     const hasToken = req.cookies.has("refreshToken");
-    if (hasToken)
+    if (hasToken && !sessionExpired)
       return NextResponse.redirect(new URL(ROUTES.DASHBOARD, req.url));
     return NextResponse.next();
   }
@@ -1158,6 +1197,14 @@ export async function logoutAction(): Promise<void> {
   cookieStore.delete("refreshToken");
   redirect(ROUTES.LOGIN);
 }
+
+// Silent cookie cleanup with no redirect — called from the dashboard layout
+// when refreshSession() fails on hard reload, so the middleware stops sending
+// the user back to /dashboard.
+export async function clearSessionCookieAction(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete("refreshToken");
+}
 ```
 
 **Logout rules:**
@@ -1168,7 +1215,7 @@ export async function logoutAction(): Promise<void> {
   trapped in a redirect loop.
 - The backend `/auth/logout` call is best-effort; cookie cleanup proceeds even
   if it fails (network down, token already expired, etc.).
-- Header's `handleLogout` calls `clear()` on the Zustand store *and* awaits
+- Header's `handleLogout` calls `clear()` on the Zustand store _and_ awaits
   `logoutAction()` — both are required.
 
 ---
@@ -1249,15 +1296,21 @@ The sidebar and dashboard should guide users through the correct setup order:
 **Layer 2 — `(dashboard)/layout.tsx`:** on hard refresh, Zustand is empty — calls
 `refreshSession()` from `src/lib/api/auth.ts` to restore the full session
 (user + token + permissions) in a single helper. Shows skeleton while re-hydrating.
-The `.catch` branch sets `isHydrating = false` *before* redirecting so the skeleton
+The `.catch` branch sets `isHydrating = false` _before_ redirecting so the skeleton
 never sticks if the redirect is slow. A `cancelled` flag in cleanup avoids
-setting state on instances unmounted by React Strict Mode in dev.
+setting state on instances unmounted by React Strict Mode in dev. On failure it
+also calls `clearSessionCookieAction()` so the stale cookie is gone, and falls
+back to `?session=expired` on `/login` as an escape hatch in case the cookie
+delete fails — the middleware honours that flag to break any redirect loop.
 
 ```typescript
 useEffect(() => {
   let cancelled = false;
   const { user, setAuth } = useAuthStore.getState();
-  if (user) { setIsHydrating(false); return; }
+  if (user) {
+    setIsHydrating(false);
+    return;
+  }
 
   refreshSession()
     .then((session) => {
@@ -1265,14 +1318,21 @@ useEffect(() => {
       setAuth(session.user, session.accessToken, session.permissions);
       setIsHydrating(false);
     })
-    .catch(() => {
+    .catch(async () => {
       if (cancelled) return;
       setIsHydrating(false);
-      router.push(ROUTES.LOGIN);
+      try {
+        await clearSessionCookieAction();
+      } catch {
+        // ignore — ?session=expired below is the second line of defense
+      }
+      window.location.replace(`${ROUTES.LOGIN}?session=expired`);
     });
 
-  return () => { cancelled = true; };
-}, [router]);
+  return () => {
+    cancelled = true;
+  };
+}, []);
 ```
 
 **Layer 3 — `PermissionGate` + `SuperAdminGate`:** per-button and per-page permission checks.
@@ -1351,8 +1411,21 @@ export default function BeamsPage() {
 
 ## 22. Playwright Test Strategy
 
+> Status: `@playwright/test` is installed as a dev dependency, but no
+> `tests/e2e/` folder or `playwright.config.ts` is checked in yet. Before
+> writing the first spec, scaffold `playwright.config.ts` and `tests/e2e/`
+> in the repo root.
+
+Conventions when E2E coverage is added:
+
+- Import paths from `@/lib/routes` — never hardcode strings.
+- Cover at minimum: auth (login / register / forgot-password), permission gating
+  (admin without `delete` should not see delete buttons), and the full mill
+  flow (firm → mill → beam quality → beam → production → outvert → invert →
+  summary status transitions).
+
 ```typescript
-// tests/e2e/beams.spec.ts
+// tests/e2e/beams.spec.ts (sample)
 import { test, expect } from "@playwright/test";
 import { ROUTES } from "@/lib/routes";
 
@@ -1363,16 +1436,6 @@ test.describe("Beams — admin with view+create only", () => {
     await page.fill("[name=password]", "Test@1234");
     await page.click("[type=submit]");
     await page.waitForURL(ROUTES.DASHBOARD);
-  });
-
-  test("shows beams list", async ({ page }) => {
-    await page.goto(ROUTES.BEAMS.LIST);
-    await expect(page.getByRole("heading", { name: "Beams" })).toBeVisible();
-  });
-
-  test("Add Beam button visible", async ({ page }) => {
-    await page.goto(ROUTES.BEAMS.LIST);
-    await expect(page.getByText("Add Beam")).toBeVisible();
   });
 
   test("Delete button not visible without delete permission", async ({
@@ -1401,7 +1464,34 @@ Never build inline label+input+error patterns inside module forms or pages.
 | `SelectField`     | All dropdowns — supports search + optional inline "+" create btn |
 | `SwitchField`     | All boolean toggles (status, challanEnable, etc.)                |
 | `DatePickerField` | All date inputs — never use native date input                    |
+| `OrderedFields`   | Renders a form's fields in a user-customisable order             |
 | `SubmitButton`    | All form submit buttons with loading state                       |
+
+### Field Ordering (OrderedFields + FieldOrderButton + useFieldOrder)
+
+All multi-field create/edit forms (FirmForm, MillForm, MachineForm, BeamForm,
+ProductionForm, MillOutvertForm, MillInvertForm) wrap their inputs in
+`OrderedFields`, which:
+
+- Persists the user's chosen order per `formId` to `localStorage` via
+  `useFieldOrder` (`form:order:<formId>` key).
+- Reconciles saved order against the current `fields` array on mount, so newly
+  added fields appear at the end and deleted fields are dropped.
+- Portals a `FieldOrderButton` ("Order" dropdown with up/down arrows) into the
+  `PageHeader` via the stable DOM id `HEADER_ACTIONS_SLOT_ID` exported from
+  [src/components/layout/PageHeader.tsx](src/components/layout/PageHeader.tsx).
+- Supports a `gridCols` prop (2 or 3) and a per-field `fullWidth` flag.
+- Accepts `allFieldIds` (a superset of currently-rendered ids) so that
+  conditionally hidden fields keep their slot when they re-appear.
+
+**Rules:**
+
+- Every multi-field form on a `/new` or `/edit` page must use `OrderedFields`.
+- Pages that host such a form must render `<PageHeader />` — the field-order
+  button portals into its actions slot. Without it, the button silently
+  disappears.
+- The `formId` must be unique and stable per form (e.g. `"firm-form"`,
+  `"production-form"`), or saved orders will collide across forms.
 
 ### SelectField — Inline Create Pattern
 
@@ -1449,6 +1539,23 @@ Never build one-off dialog implementations inside module pages.
 - Used for: status filter, date range filter, firmId filter, qualityId filter
 - Never build inline filter UI per module
 
+### FirmFilter (`src/components/data/FirmFilter.tsx`)
+
+- Segmented pill-style firm picker. Renders `All` + one button per firm.
+- Reads/writes `?firmId=` on the URL via `useSearchParams` + `router.push`.
+- Always pair with `useFirms()` for the `options` and `isLoading` props.
+- Used on the dashboard and any list page that needs to scope data to a firm.
+
+### DateRangeFilter (`src/components/data/DateRangeFilter.tsx`)
+
+- Two `DatePickerField`-style inputs (from / to) that write `?fromDate=` and
+  `?toDate=` to the URL. Use on list pages that support date-range filtering.
+
+### MillStatusBadge (`src/components/common/MillStatusBadge.tsx`)
+
+- Single source of truth for the Not Sent / At Mill / Returned status pill.
+- Takes `millOutvertDate` and `millInvertId`. Never inline this logic in tables.
+
 ---
 
 ## 24. What NOT to Do
@@ -1474,6 +1581,9 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT edit files in `src/components/ui/` manually
 - Do NOT use native `<input type="date">` — always use `DatePickerField`
 - Do NOT hardcode route strings — always import from `@/lib/routes` and use `ROUTES`
+- Do NOT call `/api/auth/refresh` or the backend `/auth/refresh` directly — always go through `refresh()` / `refreshSession()` in [src/lib/api/auth.ts](src/lib/api/auth.ts). The local Next.js route handler must remain the only direct caller of the backend refresh endpoint.
+- Do NOT build a multi-field create/edit form without `OrderedFields` and a `PageHeader` — the field-order button silently disappears if `HEADER_ACTIONS_SLOT_ID` is not in the DOM.
+- Do NOT hand-roll the Not Sent / At Mill / Returned status pill — use `MillStatusBadge`.
 - Do NOT build UI without checking the corresponding Figma frame first
 - Do NOT assume API request/response shapes — always verify against Swagger
 - Do NOT make `Taka`, `Machine Info`, or `Mill Summary` editable — view-only
