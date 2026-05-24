@@ -36,6 +36,7 @@ import { SelectField } from "@/components/forms/SelectField";
 import { InputField } from "@/components/forms/InputField";
 import { DatePickerField } from "@/components/forms/DatePickerField";
 import { SubmitButton } from "@/components/forms/SubmitButton";
+import { OrderedFields } from "@/components/forms/OrderedFields";
 import { getFirms } from "@/lib/api/firms";
 import { getMills } from "@/lib/api/mills";
 import { getMillOutverts } from "@/lib/api/millOutverts";
@@ -105,19 +106,23 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
   }));
 
   const millOutvertId = form.watch("millOutvertId");
+  const firmChallanNoValue = form.watch("firmChallanNo");
   const currentOutvert = useMemo<MillOutvert | null>(
     () => overtsData?.data.find((o) => o.id === millOutvertId) ?? null,
     [millOutvertId, overtsData],
   );
 
-  const takaOptions =
-    currentOutvert?.outvertTakas?.map((t) => t.takaSrNo) ?? [];
+  const takaOptions = useMemo(
+    () => currentOutvert?.outvertTakas?.map((t) => t.takaSrNo) ?? [],
+    [currentOutvert],
+  );
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Firm — custom popover to handle cascading resets */}
+  const fields = useMemo(
+    () => [
+      {
+        id: "firmId",
+        label: "Firm",
+        render: () => (
           <FormField
             control={form.control}
             name="firmId"
@@ -209,7 +214,12 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
               );
             }}
           />
-
+        ),
+      },
+      {
+        id: "millId",
+        label: "Mill",
+        render: () => (
           <SelectField
             name="millId"
             control={form.control}
@@ -219,8 +229,12 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
             isLoading={millsLoading}
             required
           />
-
-          {/* Mill Outvert — cascades firmChallanNo and resets takaSrNos */}
+        ),
+      },
+      {
+        id: "millOutvertId",
+        label: "Mill Outvert (Challan)",
+        render: () => (
           <FormField
             control={form.control}
             name="millOutvertId"
@@ -319,8 +333,12 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
               );
             }}
           />
-
-          {/* Firm Challan No — display only, value owned by RHF via setValue */}
+        ),
+      },
+      {
+        id: "firmChallanNo",
+        label: "Firm Challan No",
+        render: () => (
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               Firm Challan No
@@ -330,11 +348,16 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
             </Label>
             <Input
               disabled
-              value={form.watch("firmChallanNo") || "—"}
+              value={firmChallanNoValue || "—"}
               className="bg-muted/50"
             />
           </div>
-
+        ),
+      },
+      {
+        id: "invertDate",
+        label: "Invert Date",
+        render: () => (
           <FormField
             control={form.control}
             name="invertDate"
@@ -353,7 +376,12 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
               </FormItem>
             )}
           />
-
+        ),
+      },
+      {
+        id: "millChallanNo",
+        label: "Mill Challan No",
+        render: () => (
           <InputField
             name="millChallanNo"
             control={form.control}
@@ -361,115 +389,154 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
             placeholder="Enter mill challan number"
             required
           />
-        </div>
+        ),
+      },
+      {
+        id: "takaSrNos",
+        label: "Taka Sr Nos",
+        fullWidth: true,
+        render: () => (
+          <FormField
+            control={form.control}
+            name="takaSrNos"
+            render={({ field }) => {
+              const currentValue: string[] = field.value ?? [];
 
-        {/* Taka Sr Nos — options are ONLY takas from the selected outvert */}
-        <FormField
-          control={form.control}
-          name="takaSrNos"
-          render={({ field }) => {
-            const currentValue: string[] = field.value ?? [];
+              function toggleTaka(takaSrNo: string) {
+                const next = currentValue.includes(takaSrNo)
+                  ? currentValue.filter((v) => v !== takaSrNo)
+                  : [...currentValue, takaSrNo];
+                form.setValue("takaSrNos", next, { shouldValidate: true });
+              }
 
-            function toggleTaka(takaSrNo: string) {
-              const next = currentValue.includes(takaSrNo)
-                ? currentValue.filter((v) => v !== takaSrNo)
-                : [...currentValue, takaSrNo];
-              form.setValue("takaSrNos", next, { shouldValidate: true });
-            }
+              function removeTaka(takaSrNo: string) {
+                form.setValue(
+                  "takaSrNos",
+                  currentValue.filter((v) => v !== takaSrNo),
+                  { shouldValidate: true },
+                );
+              }
 
-            function removeTaka(takaSrNo: string) {
-              form.setValue(
-                "takaSrNos",
-                currentValue.filter((v) => v !== takaSrNo),
-                { shouldValidate: true },
-              );
-            }
+              return (
+                <FormItem>
+                  <FormLabel>
+                    Taka Sr Nos
+                    <span className="ml-1 text-destructive">*</span>
+                  </FormLabel>
 
-            return (
-              <FormItem>
-                <FormLabel>
-                  Taka Sr Nos
-                  <span className="ml-1 text-destructive">*</span>
-                </FormLabel>
-
-                <Popover
-                  open={takaPopoverOpen}
-                  onOpenChange={setTakaPopoverOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      role="combobox"
-                      disabled={!currentOutvert}
-                      className={cn(
-                        "w-full justify-between font-normal",
-                        currentValue.length === 0 && "text-muted-foreground",
-                      )}
-                    >
-                      {!currentOutvert
-                        ? "Select an outvert first"
-                        : currentValue.length === 0
-                          ? "Select takas..."
-                          : `${currentValue.length} taka(s) selected`}
-                      <ChevronDown className="ml-2 size-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-[var(--radix-popover-trigger-width)] p-0"
-                    align="start"
+                  <Popover
+                    open={takaPopoverOpen}
+                    onOpenChange={setTakaPopoverOpen}
                   >
-                    <Command>
-                      <CommandInput placeholder="Search taka Sr No..." />
-                      <CommandList>
-                        {takaOptions.length === 0 && (
-                          <CommandEmpty>
-                            No takas in this outvert.
-                          </CommandEmpty>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        disabled={!currentOutvert}
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          currentValue.length === 0 &&
+                            "text-muted-foreground",
                         )}
-                        <CommandGroup>
-                          {takaOptions.map((srNo) => (
-                            <CommandItem
-                              key={srNo}
-                              value={srNo}
-                              onSelect={() => toggleTaka(srNo)}
-                            >
-                              <Checkbox
-                                checked={currentValue.includes(srNo)}
-                                className="mr-2"
-                                tabIndex={-1}
-                              />
-                              {srNo}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                      >
+                        {!currentOutvert
+                          ? "Select an outvert first"
+                          : currentValue.length === 0
+                            ? "Select takas..."
+                            : `${currentValue.length} taka(s) selected`}
+                        <ChevronDown className="ml-2 size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start"
+                    >
+                      <Command>
+                        <CommandInput placeholder="Search taka Sr No..." />
+                        <CommandList>
+                          {takaOptions.length === 0 && (
+                            <CommandEmpty>
+                              No takas in this outvert.
+                            </CommandEmpty>
+                          )}
+                          <CommandGroup>
+                            {takaOptions.map((srNo) => (
+                              <CommandItem
+                                key={srNo}
+                                value={srNo}
+                                onSelect={() => toggleTaka(srNo)}
+                              >
+                                <Checkbox
+                                  checked={currentValue.includes(srNo)}
+                                  className="mr-2"
+                                  tabIndex={-1}
+                                />
+                                {srNo}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
 
-                {currentValue.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {currentValue.map((srNo) => (
-                      <Badge key={srNo} variant="secondary" className="gap-1">
-                        {srNo}
-                        <button
-                          type="button"
-                          aria-label={`Remove taka ${srNo}`}
-                          onClick={() => removeTaka(srNo)}
-                          className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
+                  {currentValue.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {currentValue.map((srNo) => (
+                        <Badge
+                          key={srNo}
+                          variant="secondary"
+                          className="gap-1"
                         >
-                          <X className="size-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                          {srNo}
+                          <button
+                            type="button"
+                            aria-label={`Remove taka ${srNo}`}
+                            onClick={() => removeTaka(srNo)}
+                            className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
 
-                <FormMessage />
-              </FormItem>
-            );
-          }}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+        ),
+      },
+    ],
+    [
+      form,
+      firmOptions,
+      firmsLoading,
+      firmPopoverOpen,
+      millOptions,
+      millsLoading,
+      outvertOptions,
+      overtsLoading,
+      overtsData,
+      outvertPopoverOpen,
+      selectedFirmId,
+      firmChallanNoValue,
+      takaPopoverOpen,
+      takaOptions,
+      currentOutvert,
+    ],
+  );
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <OrderedFields
+          formId="mill-invert-form"
+          fields={fields}
+          gridCols={2}
         />
 
         <SubmitButton isLoading={isLoading}>

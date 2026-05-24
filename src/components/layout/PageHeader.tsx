@@ -5,6 +5,10 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 
+// Stable DOM id forms portal their "Order" (field reorder) button into.
+// See OrderedFields — it looks this slot up on mount and renders into it.
+export const HEADER_ACTIONS_SLOT_ID = "page-header-actions-slot";
+
 type Props = {
   title?: string;
   children?: ReactNode;
@@ -14,8 +18,6 @@ type Props = {
 };
 
 export function PageHeader({ children, backHref, onBack, filter }: Props) {
-  if (!children && !backHref && !onBack && !filter) return <div className="mb-6" />;
-
   const backButton = onBack ? (
     <Button variant="ghost" size="icon" className="shrink-0" onClick={onBack}>
       <ChevronLeft className="size-4" />
@@ -36,9 +38,13 @@ export function PageHeader({ children, backHref, onBack, filter }: Props) {
       {filter && (
         <div className="flex-1 min-w-0 overflow-x-auto">{filter}</div>
       )}
-      {children && (
-        <div className="flex items-center gap-2 shrink-0 ml-auto">{children}</div>
-      )}
+      <div className="flex items-center gap-2 shrink-0 ml-auto">
+        {children}
+        <div
+          id={HEADER_ACTIONS_SLOT_ID}
+          className="flex items-center gap-2"
+        />
+      </div>
     </div>
   );
 }
