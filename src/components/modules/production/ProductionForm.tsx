@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ import { InputField } from "@/components/forms/InputField";
 import { SelectField } from "@/components/forms/SelectField";
 import { DatePickerField } from "@/components/forms/DatePickerField";
 import { SubmitButton } from "@/components/forms/SubmitButton";
+import { OrderedFields } from "@/components/forms/OrderedFields";
 import { ProductionQualityDialog } from "@/components/modules/production-qualities/ProductionQualityDialog";
 import { getFirms } from "@/lib/api/firms";
 import { getMachines } from "@/lib/api/machines";
@@ -40,6 +41,20 @@ type Props = {
     millName?: string;
   };
 };
+
+const ALL_PRODUCTION_FIELD_IDS = [
+  "firmId",
+  "machineId",
+  "beamId",
+  "entryDate",
+  "takaSrNo",
+  "takaNo",
+  "takaMeter",
+  "productionQualityId",
+  "weight",
+  "productionChallanNo",
+  "remark",
+];
 
 export function ProductionForm({
   defaultValues,
@@ -156,145 +171,212 @@ export function ProductionForm({
     setQualityDialogOpen(false);
   }
 
+  const challanEnable = !!selectedFirm?.challanEnable;
+
+  const fields = useMemo(() => {
+    const base = [
+      {
+        id: "firmId",
+        label: "Firm",
+        render: () => (
+          <SelectField
+            name="firmId"
+            control={form.control}
+            label="Firm"
+            placeholder="Select a firm"
+            options={firmOptions}
+            isLoading={firms.isLoading}
+            required
+          />
+        ),
+      },
+      {
+        id: "machineId",
+        label: "Machine No.",
+        render: () => (
+          <SelectField
+            name="machineId"
+            control={form.control}
+            label="Machine No."
+            placeholder={
+              !selectedFirmId ? "Select a firm first" : "Select a machine"
+            }
+            options={machineOptions}
+            isLoading={machines.isLoading}
+            disabled={!selectedFirmId}
+            required
+          />
+        ),
+      },
+      {
+        id: "beamId",
+        label: "Beam No.",
+        render: () => (
+          <SelectField
+            name="beamId"
+            control={form.control}
+            label="Beam No."
+            placeholder="Select a beam"
+            options={beamOptions}
+            isLoading={beams.isLoading}
+            required
+          />
+        ),
+      },
+      {
+        id: "entryDate",
+        label: "Entry Date",
+        render: () => (
+          <FormField
+            control={form.control}
+            name="entryDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Entry Date
+                  <span className="ml-1 text-destructive">*</span>
+                </FormLabel>
+                <FormControl>
+                  <DatePickerField
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Pick entry date"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ),
+      },
+      {
+        id: "takaSrNo",
+        label: "Taka Sr No",
+        render: () => (
+          <InputField
+            name="takaSrNo"
+            control={form.control}
+            label="Taka Sr No"
+            placeholder="Enter serial number"
+            required
+          />
+        ),
+      },
+      {
+        id: "takaNo",
+        label: "Taka No",
+        render: () => (
+          <InputField
+            name="takaNo"
+            control={form.control}
+            label="Taka No"
+            placeholder="Enter taka number"
+            required
+          />
+        ),
+      },
+      {
+        id: "takaMeter",
+        label: "Taka Meter",
+        render: () => (
+          <InputField
+            name="takaMeter"
+            control={form.control}
+            label="Taka Meter"
+            placeholder="Enter meters"
+            type="number"
+            required
+          />
+        ),
+      },
+      {
+        id: "productionQualityId",
+        label: "Production Quality",
+        render: () => (
+          <SelectField
+            name="productionQualityId"
+            control={form.control}
+            label="Production Quality"
+            placeholder="Select a quality"
+            options={qualityOptions}
+            isLoading={qualities.isLoading}
+            required
+            onAddNew={() => setQualityDialogOpen(true)}
+          />
+        ),
+      },
+      {
+        id: "weight",
+        label: "Weight",
+        render: () => (
+          <InputField
+            name="weight"
+            control={form.control}
+            label="Weight"
+            placeholder="Enter weight"
+            type="number"
+            required
+          />
+        ),
+      },
+      {
+        id: "remark",
+        label: "Remark",
+        render: () => (
+          <InputField
+            name="remark"
+            control={form.control}
+            label="Remark"
+            placeholder="Enter remark (optional)"
+          />
+        ),
+      },
+    ];
+
+    if (challanEnable) {
+      base.splice(9, 0, {
+        id: "productionChallanNo",
+        label: "Challan No",
+        render: () => (
+          <InputField
+            name="productionChallanNo"
+            control={form.control}
+            label="Challan No"
+            placeholder="Enter challan number"
+            required
+          />
+        ),
+      });
+    }
+
+    return base;
+  }, [
+    form.control,
+    firmOptions,
+    firms.isLoading,
+    machineOptions,
+    machines.isLoading,
+    selectedFirmId,
+    beamOptions,
+    beams.isLoading,
+    qualityOptions,
+    qualities.isLoading,
+    challanEnable,
+  ]);
+
   return (
     <>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleFormSubmit)}
-          className="space-y-4"
+          className="space-y-6"
         >
-          {/* Firm + Machine + Beam */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <SelectField
-              name="firmId"
-              control={form.control}
-              label="Firm"
-              placeholder="Select a firm"
-              options={firmOptions}
-              isLoading={firms.isLoading}
-              required
-            />
-
-            <SelectField
-              name="machineId"
-              control={form.control}
-              label="Machine No."
-              placeholder={
-                !selectedFirmId ? "Select a firm first" : "Select a machine"
-              }
-              options={machineOptions}
-              isLoading={machines.isLoading}
-              disabled={!selectedFirmId}
-              required
-            />
-
-            <SelectField
-              name="beamId"
-              control={form.control}
-              label="Beam No."
-              placeholder="Select a beam"
-              options={beamOptions}
-              isLoading={beams.isLoading}
-              required
-            />
-          </div>
-
-          {/* Entry Date + Taka Sr No + Taka No */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <FormField
-              control={form.control}
-              name="entryDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Entry Date
-                    <span className="ml-1 text-destructive">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <DatePickerField
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Pick entry date"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <InputField
-              name="takaSrNo"
-              control={form.control}
-              label="Taka Sr No"
-              placeholder="Enter serial number"
-              required
-            />
-
-            <InputField
-              name="takaNo"
-              control={form.control}
-              label="Taka No"
-              placeholder="Enter taka number"
-              required
-            />
-          </div>
-
-          {/* Taka Meter + Production Quality + Weight */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <InputField
-              name="takaMeter"
-              control={form.control}
-              label="Taka Meter"
-              placeholder="Enter meters"
-              type="number"
-              required
-            />
-
-            <SelectField
-              name="productionQualityId"
-              control={form.control}
-              label="Production Quality"
-              placeholder="Select a quality"
-              options={qualityOptions}
-              isLoading={qualities.isLoading}
-              required
-              onAddNew={() => setQualityDialogOpen(true)}
-            />
-
-            <InputField
-              name="weight"
-              control={form.control}
-              label="Weight"
-              placeholder="Enter weight"
-              type="number"
-              required
-            />
-          </div>
-
-          {/* Challan No + Remark */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {selectedFirm?.challanEnable && (
-              <InputField
-                name="productionChallanNo"
-                control={form.control}
-                label="Challan No"
-                placeholder="Enter challan number"
-                required
-              />
-            )}
-            <div
-              className={
-                selectedFirm?.challanEnable ? "md:col-span-2" : "md:col-span-3"
-              }
-            >
-              <InputField
-                name="remark"
-                control={form.control}
-                label="Remark"
-                placeholder="Enter remark (optional)"
-              />
-            </div>
-          </div>
+          <OrderedFields
+            formId="production-form"
+            fields={fields}
+            allFieldIds={ALL_PRODUCTION_FIELD_IDS}
+            gridCols={3}
+          />
 
           {/* Auto-filled mill info — always rendered, never editable */}
           <div className="space-y-2">

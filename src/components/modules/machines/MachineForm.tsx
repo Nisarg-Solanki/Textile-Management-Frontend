@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import { InputField } from "@/components/forms/InputField";
 import { SelectField } from "@/components/forms/SelectField";
 import { SwitchField } from "@/components/forms/SwitchField";
 import { SubmitButton } from "@/components/forms/SubmitButton";
+import { OrderedFields } from "@/components/forms/OrderedFields";
 import {
   createMachineSchema,
   type CreateMachineInput,
@@ -60,10 +62,12 @@ export function MachineForm({ defaultValues, onSubmit, isLoading }: Props) {
     }
   }
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+  const fields = useMemo(
+    () => [
+      {
+        id: "firmId",
+        label: "Firm",
+        render: () => (
           <SelectField
             control={form.control}
             name="firmId"
@@ -74,6 +78,12 @@ export function MachineForm({ defaultValues, onSubmit, isLoading }: Props) {
             required
             disabled={isLoading}
           />
+        ),
+      },
+      {
+        id: "machineNo",
+        label: "Machine No",
+        render: () => (
           <InputField
             control={form.control}
             name="machineNo"
@@ -82,6 +92,12 @@ export function MachineForm({ defaultValues, onSubmit, isLoading }: Props) {
             required
             disabled={isLoading}
           />
+        ),
+      },
+      {
+        id: "machineType",
+        label: "Machine Type",
+        render: () => (
           <InputField
             control={form.control}
             name="machineType"
@@ -89,22 +105,42 @@ export function MachineForm({ defaultValues, onSubmit, isLoading }: Props) {
             placeholder="Enter machine type"
             disabled={isLoading}
           />
+        ),
+      },
+      {
+        id: "status",
+        label: "Active",
+        render: () => (
           <SwitchField
             control={form.control}
             name="status"
             label="Active"
             disabled={isLoading}
           />
-          <div className="md:col-span-2">
-            <InputField
-              control={form.control}
-              name="remark"
-              label="Remark"
-              placeholder="Enter remark"
-              disabled={isLoading}
-            />
-          </div>
-        </div>
+        ),
+      },
+      {
+        id: "remark",
+        label: "Remark",
+        fullWidth: true,
+        render: () => (
+          <InputField
+            control={form.control}
+            name="remark"
+            label="Remark"
+            placeholder="Enter remark"
+            disabled={isLoading}
+          />
+        ),
+      },
+    ],
+    [form.control, firmOptions, firmsLoading, isLoading],
+  );
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <OrderedFields formId="machine-form" fields={fields} gridCols={2} />
         <SubmitButton isLoading={isLoading}>
           {defaultValues?.machineNo ? "Save Changes" : "Create Machine"}
         </SubmitButton>
