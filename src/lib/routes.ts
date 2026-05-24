@@ -95,4 +95,7 @@ export const ROUTES = {
 
   // Mill Summary — view only
   MILL_SUMMARY: "/mill-summary",
+
+  // User Profile
+  PROFILE: "/profile",
 } as const;

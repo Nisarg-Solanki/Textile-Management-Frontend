@@ -89,6 +89,7 @@ function ResetPasswordForm() {
               type="password"
               placeholder="Min. 8 characters"
               required
+              showPasswordToggle
             />
             <InputField
               name="confirmPassword"
@@ -97,6 +98,7 @@ function ResetPasswordForm() {
               type="password"
               placeholder="Repeat new password"
               required
+              showPasswordToggle
             />
             <SubmitButton
               isLoading={form.formState.isSubmitting}

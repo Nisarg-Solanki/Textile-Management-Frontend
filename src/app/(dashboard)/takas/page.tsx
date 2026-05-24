@@ -200,6 +200,12 @@ export default function TakasPage() {
                       placeholder="e.g. B001"
                       defaultValue={searchParams.get("beam_no") ?? ""}
                       onBlur={(e) => handleBeamNoChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleBeamNoChange(e.currentTarget.value);
+                          e.currentTarget.blur();
+                        }
+                      }}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -212,6 +218,12 @@ export default function TakasPage() {
                       placeholder="0"
                       defaultValue={searchParams.get("meter_min") ?? ""}
                       onBlur={(e) => handleMeterMinChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleMeterMinChange(e.currentTarget.value);
+                          e.currentTarget.blur();
+                        }
+                      }}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -224,6 +236,12 @@ export default function TakasPage() {
                       placeholder="∞"
                       defaultValue={searchParams.get("meter_max") ?? ""}
                       onBlur={(e) => handleMeterMaxChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleMeterMaxChange(e.currentTarget.value);
+                          e.currentTarget.blur();
+                        }
+                      }}
                     />
                   </div>
                 </div>

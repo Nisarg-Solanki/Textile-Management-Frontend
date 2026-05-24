@@ -270,6 +270,7 @@
             "remark",
             "firm.firmName",
             "millOutvertDate",
+            "millInvertDate",
             "millChallanNo",
             "millName",
             "millOutvertId",
@@ -295,6 +296,7 @@
             "firm.firmName",
             "createdAt",
             "productionInfo.millOutvertDate",
+            "productionInfo.millInvertDate",
             "productionInfo.millInvertId"
           ]
         },

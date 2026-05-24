@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api/client";
-import { post, getOne, getList } from "@/lib/api/request";
+import { post, getOne, getList, del } from "@/lib/api/request";
 import type { ApiResponse, PaginatedResponse } from "@/lib/api/request";
 import { handleApiError, ApiError } from "@/lib/utils/handleError";
 import type { AuthUser, Permission, PermissionsApiResponse } from "@/types/app";
@@ -203,4 +203,8 @@ export function createUser(data: {
     "/auth/users",
     data,
   );
+}
+
+export function deleteUser(id: string): Promise<void> {
+  return del(`/auth/users/${id}`);
 }

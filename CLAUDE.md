@@ -124,8 +124,10 @@ frontend/
 │   │       ├── mill-inverts/              # Same structure as firms/
 │   │       ├── machine-info/
 │   │       │   └── page.tsx               # View only — live machine status
-│   │       └── mill-summary/
-│   │           └── page.tsx               # View only — status tabs
+│   │       ├── mill-summary/
+│   │       │   └── page.tsx               # View only — status tabs
+│   │       └── profile/
+│   │           └── page.tsx               # User info card + reset-password dialog
 │   ├── components/
 │   │   ├── ui/                            # shadcn/ui — do not edit manually
 │   │   │   ├── accordion.tsx
@@ -172,7 +174,7 @@ frontend/
 │   │   │   └── MillStatusBadge.tsx        # Not Sent / At Mill / Returned status pill
 │   │   ├── layout/
 │   │   │   ├── Sidebar.tsx                # Permission-aware nav
-│   │   │   ├── Header.tsx                 # Breadcrumb + user menu + theme toggle
+│   │   │   ├── Header.tsx                 # Page title + theme toggle + avatar dropdown (→ /profile, logout)
 │   │   │   ├── MobileNav.tsx              # Bottom tab bar on mobile
 │   │   │   └── PageHeader.tsx             # Title + primary action + HEADER_ACTIONS_SLOT_ID portal target
 │   │   ├── data/
@@ -406,6 +408,9 @@ export const ROUTES = {
 
   // Mill Summary — view only
   MILL_SUMMARY: "/mill-summary",
+
+  // User Profile
+  PROFILE: "/profile",
 } as const;
 ```
 
@@ -706,7 +711,8 @@ The module exposes three layers:
 
 1. **Bare API calls** — one function per endpoint:
    `login`, `register`, `logout`, `forgotPassword`, `resetPassword`, `refresh`,
-   `getPermissionsFor`, `getPendingUsers`, `approveUser`, `rejectUser`, `createUser`.
+   `getPermissionsFor`, `getPendingUsers`, `approveUser`, `rejectUser`, `createUser`,
+   `deleteUser`.
    Each returns the unwrapped response data (no `{ data: { data: ... } }` plumbing).
 
 2. **Composed flows** — bundle multiple bare calls into a single semantic operation:
@@ -1254,6 +1260,14 @@ The sidebar and dashboard should guide users through the correct setup order:
 - `Challan No` is a **dropdown** referencing existing Outvert Challan Nos — not free text.
 - `Taka Sr No` multi-select shows only Taka Sr Nos from the selected Outvert Challan.
 
+### Profile module (`/profile`)
+
+- Accessible to all authenticated users (no permission gate needed).
+- Displays user info: name, email, role badge.
+- **Reset Password** button triggers a confirmation dialog that calls `forgotPassword(email)` from `src/lib/api/auth.ts` and shows a sonner success toast.
+- Header avatar dropdown has a "User Details" item that navigates to `ROUTES.PROFILE` — no inline name/email/role in the dropdown.
+- The `PROFILE` route must be added to `ROUTES` (it is) — never hardcode `"/profile"`.
+
 ### Taka module
 
 - **View only** — no create, edit, or delete UI at all.
@@ -1262,7 +1276,8 @@ The sidebar and dashboard should guide users through the correct setup order:
 ### Machine Info module
 
 - **View only** — live read from Production Info.
-- Refresh every 30 seconds or provide a manual refresh button.
+- Auto-refreshes every 30 seconds via `setInterval(() => refetch(), 30000)` in a `useEffect`. Also has a manual **Refresh** button that calls `queryClient.invalidateQueries({ queryKey: ["machine-info"] })`.
+- The machine_no filter input uses **debounced local state** (300 ms via `useRef<ReturnType<typeof setTimeout>>`) — the input value is held in `useState`, and URL params are written only after the debounce fires. Use this same pattern for any free-text filter that would fire a URL push on every keystroke.
 
 ### Mill Summary View
 
@@ -1286,6 +1301,14 @@ The sidebar and dashboard should guide users through the correct setup order:
 - Firm delete: blocked if Beams, Machines, or Production Info exist → show toast
 - Mill delete: blocked if Mill Outvert/Invert records reference it → show toast
 - Prefer "Set Inactive" over delete in all cases — match Figma for inactive toggle UI.
+
+### Users module (`/admin/users`) — super_admin only
+
+- **Delete user** — `super_admin` can delete any `admin` user via `DELETE /auth/users/:id`.
+- Delete button is **disabled** for rows where `role === "super_admin"` (a super admin cannot delete another super admin, same guard as the Permissions button).
+- Uses `ConfirmDialog` (common component); description includes the user's name and email so the actor knows exactly who they are removing.
+- On success: `toast.success`, invalidate `["users"]` query. On failure: `showErrorToast`.
+- The delete API call lives in `src/lib/api/auth.ts` as `deleteUser(id)` — never call `del()` from the page directly.
 
 ---
 
@@ -1551,6 +1574,43 @@ Never build one-off dialog implementations inside module pages.
 - Two `DatePickerField`-style inputs (from / to) that write `?fromDate=` and
   `?toDate=` to the URL. Use on list pages that support date-range filtering.
 
+### Lazy-loaded filter dropdowns (Mill / Quality select inside FilterPanel)
+
+For select dropdowns in `FilterPanel` that reference a master list (mills, production
+qualities, etc.), **do not derive options from the currently-loaded page items** —
+that only surfaces options already on screen and misses the rest of the master list.
+
+The correct pattern:
+
+```tsx
+const [selectOpen, setSelectOpen] = useState(false);
+
+const { data, isLoading } = useQuery({
+  queryKey: ["mills", "filter-list"],
+  queryFn: () => getMills({ status: "active", limit: 200 }),
+  enabled: selectOpen,          // lazy — only fetches when the user opens the dropdown
+  staleTime: 5 * 60 * 1000,    // 5 min — master list changes rarely
+});
+
+<Select open={selectOpen} onOpenChange={setSelectOpen} ...>
+  <SelectContent>
+    <SelectItem value="all">All Mills</SelectItem>
+    {isLoading ? (
+      <>
+        <Skeleton className="mx-2 my-1 h-5 w-36" />
+        <Skeleton className="mx-2 my-1 h-5 w-28" />
+        <Skeleton className="mx-2 my-1 h-5 w-32" />
+      </>
+    ) : (
+      options.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)
+    )}
+  </SelectContent>
+</Select>
+```
+
+URL param name for mill filter is `?mill=` (mapped to `millId` when passed to the fetcher).
+URL param name for quality filter is `?qualityId=`.
+
 ### MillStatusBadge (`src/components/common/MillStatusBadge.tsx`)
 
 - Single source of truth for the Not Sent / At Mill / Returned status pill.
@@ -1584,6 +1644,9 @@ Never build one-off dialog implementations inside module pages.
 - Do NOT call `/api/auth/refresh` or the backend `/auth/refresh` directly — always go through `refresh()` / `refreshSession()` in [src/lib/api/auth.ts](src/lib/api/auth.ts). The local Next.js route handler must remain the only direct caller of the backend refresh endpoint.
 - Do NOT build a multi-field create/edit form without `OrderedFields` and a `PageHeader` — the field-order button silently disappears if `HEADER_ACTIONS_SLOT_ID` is not in the DOM.
 - Do NOT hand-roll the Not Sent / At Mill / Returned status pill — use `MillStatusBadge`.
+- Do NOT derive filter dropdown options from the current page's loaded items — use a lazy `useQuery` against the master-list endpoint so all options are available, not just those on screen.
+- Do NOT write URL params on every keystroke from a free-text filter input — use debounced local state (300 ms, same pattern as `SearchBar`) to batch URL writes.
+- Do NOT put user name/email/role in the Header dropdown — those belong on the `/profile` page. The dropdown contains only "User Details" (→ `ROUTES.PROFILE`) and "Logout".
 - Do NOT build UI without checking the corresponding Figma frame first
 - Do NOT assume API request/response shapes — always verify against Swagger
 - Do NOT make `Taka`, `Machine Info`, or `Mill Summary` editable — view-only
