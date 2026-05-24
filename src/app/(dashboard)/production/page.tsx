@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
@@ -25,6 +26,7 @@ import { PermissionGate } from "@/components/modules/PermissionGate";
 import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { getProductions } from "@/lib/api/production";
+import { getProductionQualities } from "@/lib/api/productionQualities";
 import { useFirms } from "@/lib/hooks/useFirms";
 import { deleteProductionAction } from "@/lib/actions/production.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
@@ -65,13 +67,19 @@ export default function ProductionPage() {
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const qualityOptions = Array.from(
-    new Map(
-      items
-        .filter((p) => p.productionQuality)
-        .map((p) => [p.productionQuality!.id, p.productionQuality!])
-    ).values()
-  ).map((q) => ({ value: q.id, label: q.name }));
+  const [qualitySelectOpen, setQualitySelectOpen] = useState(false);
+
+  const { data: qualitiesData, isLoading: qualitiesLoading } = useQuery({
+    queryKey: ["production-qualities", "filter-list"],
+    queryFn: () => getProductionQualities({ status: "active", limit: 200 }),
+    enabled: qualitySelectOpen,
+    staleTime: 5 * 60 * 1000, // 5 min — master list changes rarely
+  });
+
+  const qualityOptions = (qualitiesData?.data ?? []).map((q) => ({
+    value: q.id,
+    label: q.name,
+  }));
 
   const deleteRecord = items.find((r) => r.id === deleteId);
 
@@ -265,17 +273,27 @@ export default function ProductionPage() {
                     <Select
                       value={searchParams.get("qualityId") ?? "all"}
                       onValueChange={handleQualityChange}
+                      open={qualitySelectOpen}
+                      onOpenChange={setQualitySelectOpen}
                     >
                       <SelectTrigger className="w-48">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Qualities</SelectItem>
-                        {qualityOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
+                        {qualitiesLoading ? (
+                          <>
+                            <Skeleton className="mx-2 my-1 h-5 w-36" />
+                            <Skeleton className="mx-2 my-1 h-5 w-28" />
+                            <Skeleton className="mx-2 my-1 h-5 w-32" />
+                          </>
+                        ) : (
+                          qualityOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
@@ -27,6 +27,11 @@ export default function MachineInfoPage() {
   const machine_no = searchParams.get("machine_no") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
 
+  // Local state so the input feels instant; URL (and thus the query) only
+  // updates after the user stops typing for 300 ms — same pattern as SearchBar.
+  const [machineNoInput, setMachineNoInput] = useState(machine_no ?? "");
+  const machineNoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<import("@/lib/api/machineInfo").MachineInfoRow, {
       search?: string;
@@ -45,17 +50,26 @@ export default function MachineInfoPage() {
     return () => clearInterval(id);
   }, [refetch]);
 
-  const { firmOptions, isLoading: firmsLoading } = useFirms();
+  // Debounce machine_no → URL writes (300 ms)
+  useEffect(() => {
+    if (machineNoDebounceRef.current) clearTimeout(machineNoDebounceRef.current);
 
-  function handleMachineNoChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set("machine_no", value);
-    } else {
-      params.delete("machine_no");
-    }
-    router.push(`?${params.toString()}`);
-  }
+    machineNoDebounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (machineNoInput) {
+        params.set("machine_no", machineNoInput);
+      } else {
+        params.delete("machine_no");
+      }
+      router.push(`?${params.toString()}`);
+    }, 300);
+
+    return () => {
+      if (machineNoDebounceRef.current) clearTimeout(machineNoDebounceRef.current);
+    };
+  }, [machineNoInput, router, searchParams]);
+
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
   return (
     <PermissionGate module="machine_info" action="view">
@@ -95,8 +109,8 @@ export default function MachineInfoPage() {
                       Machine No
                     </span>
                     <Input
-                      value={machine_no ?? ""}
-                      onChange={(e) => handleMachineNoChange(e.target.value)}
+                      value={machineNoInput}
+                      onChange={(e) => setMachineNoInput(e.target.value)}
                       placeholder="Filter by machine no"
                       className="w-48"
                     />

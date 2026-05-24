@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/lib/store/authStore";
 import { logoutAction } from "@/lib/actions/auth.actions";
+import { ROUTES } from "@/lib/routes";
 
 function formatSegment(segment: string): string {
   return segment
@@ -29,6 +29,7 @@ function isUuid(segment: string): boolean {
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, clear } = useAuthStore();
 
@@ -47,7 +48,6 @@ export function Header() {
   }
 
   const initials = user?.name?.charAt(0).toUpperCase() ?? "?";
-  const roleLabel = user?.role === "super_admin" ? "Super Admin" : "Admin";
 
   return (
     <header className="flex flex-row items-center justify-between border-b px-6 h-14">
@@ -73,19 +73,13 @@ export function Header() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem disabled>
-              <span className="font-medium">{user?.name}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled>
-              <span className="text-xs text-muted-foreground">
-                {user?.email}
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled>
-              <Badge variant="secondary" className="text-xs">
-                {roleLabel}
-              </Badge>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={() => router.push(ROUTES.PROFILE)}
+              className="cursor-pointer"
+            >
+              <User className="size-4" />
+              User Details
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

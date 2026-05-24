@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
@@ -24,6 +25,7 @@ import { PermissionGate } from "@/components/modules/PermissionGate";
 import { DateRangeFilter } from "@/components/data/DateRangeFilter";
 import { FirmFilter } from "@/components/data/FirmFilter";
 import { getMillOutverts } from "@/lib/api/millOutverts";
+import { getMills } from "@/lib/api/mills";
 import { useFirms } from "@/lib/hooks/useFirms";
 import { deleteMillOutvertAction } from "@/lib/actions/millOutverts.actions";
 import { showErrorToast } from "@/lib/utils/handleError";
@@ -39,7 +41,7 @@ export default function MillOutvertsPage() {
   const queryClient = useQueryClient();
 
   const search = searchParams.get("search") ?? undefined;
-  const millId = searchParams.get("millId") ?? undefined;
+  const mill = searchParams.get("mill") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
   const date_from = searchParams.get("date_from") ?? undefined;
   const date_to = searchParams.get("date_to") ?? undefined;
@@ -56,29 +58,35 @@ export default function MillOutvertsPage() {
       date_to?: string;
     }>({
       queryKey: ["mill-outverts"],
-      params: { search, millId, firmId, date_from, date_to },
+      params: { search, millId: mill, firmId, date_from, date_to },
       limit: LIMIT,
       fetcher: getMillOutverts,
     });
 
   const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const millOptions = Array.from(
-    new Map(
-      items
-        .filter((mo) => mo.mill)
-        .map((mo) => [mo.millId, { id: mo.millId, millName: mo.mill!.millName }])
-    ).values()
-  ).map((m) => ({ value: m.id, label: m.millName }));
+  const [millSelectOpen, setMillSelectOpen] = useState(false);
+
+  const { data: millsData, isLoading: millsLoading } = useQuery({
+    queryKey: ["mills", "filter-list"],
+    queryFn: () => getMills({ status: "active", limit: 200 }),
+    enabled: millSelectOpen,
+    staleTime: 5 * 60 * 1000, // 5 min — master list changes rarely
+  });
+
+  const millOptions = (millsData?.data ?? []).map((m) => ({
+    value: m.id,
+    label: m.millName,
+  }));
 
   const deleteRecord = items.find((r) => r.id === deleteId);
 
   function handleMillChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value === "all") {
-      params.delete("millId");
+      params.delete("mill");
     } else {
-      params.set("millId", value);
+      params.set("mill", value);
     }
     router.push(`?${params.toString()}`);
   }
@@ -206,19 +214,29 @@ export default function MillOutvertsPage() {
                       Mill
                     </span>
                     <Select
-                      value={searchParams.get("millId") ?? "all"}
+                      value={searchParams.get("mill") ?? "all"}
                       onValueChange={handleMillChange}
+                      open={millSelectOpen}
+                      onOpenChange={setMillSelectOpen}
                     >
                       <SelectTrigger className="w-48">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Mills</SelectItem>
-                        {millOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
+                        {millsLoading ? (
+                          <>
+                            <Skeleton className="mx-2 my-1 h-5 w-36" />
+                            <Skeleton className="mx-2 my-1 h-5 w-28" />
+                            <Skeleton className="mx-2 my-1 h-5 w-32" />
+                          </>
+                        ) : (
+                          millOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
