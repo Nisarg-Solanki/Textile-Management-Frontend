@@ -20,7 +20,7 @@ export type MillInvert = {
     firmChallanNo: string;
     outvertTakas: Array<{ takaSrNo: string }>;
   };
-  invertTakas?: Array<{ id: string; takaSrNo: string }>;
+  invertTakas?: Array<{ id: string; takaSrNo: string, takaMeter: number }>;
 };
 
 type MillInvertListParams = {

@@ -121,6 +121,7 @@ export default function MillInvertDetailPage() {
                   <TableRow>
                     <TableHead>#</TableHead>
                     <TableHead>Taka Sr No</TableHead>
+                    <TableHead>Taka Meter</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -130,6 +131,7 @@ export default function MillInvertDetailPage() {
                         {index + 1}
                       </TableCell>
                       <TableCell>{taka.takaSrNo}</TableCell>
+                      <TableCell>{taka.takaMeter}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

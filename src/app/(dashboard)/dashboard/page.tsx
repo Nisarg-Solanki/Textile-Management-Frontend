@@ -95,7 +95,7 @@ export default function DashboardPage() {
           value={stats?.pendingTakas.value}
           attentionLabel={stats?.pendingTakas.label}
           requiresAttention={stats?.pendingTakas.requiresAttention}
-          href={`${ROUTES.MILL_SUMMARY}?status=not_sent`}
+          href={`${ROUTES.TAKAS.LIST}?status=not_sent${firmId ? `&firmId=${firmId}` : ""}`}
         />
       </div>
 
