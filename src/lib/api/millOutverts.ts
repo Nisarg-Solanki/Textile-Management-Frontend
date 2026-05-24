@@ -14,7 +14,7 @@ export type MillOutvert = {
   updatedAt: string;
   firm?: { firmName: string };
   mill?: { millName: string };
-  outvertTakas?: Array<{ id: string; takaSrNo: string }>;
+  outvertTakas?: Array<{ id: string; takaSrNo: string; takaMeter: number }>;
   productionInfos?: Array<{ id: string; takaSrNo: string }>;
 };
 

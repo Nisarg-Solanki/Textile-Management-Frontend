@@ -87,7 +87,7 @@ export default function MillSummaryPage() {
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="at_mill">At Mill</TabsTrigger>
                 <TabsTrigger value="returned">Returned</TabsTrigger>
-                <TabsTrigger value="not_sent">Not Sent</TabsTrigger>
+                {/* <TabsTrigger value="not_sent">Not Sent</TabsTrigger> */}
               </TabsList>
             </Tabs>
           </div>

@@ -31,6 +31,7 @@ type TakaListParams = {
   meter_min?: number;
   meter_max?: number;
   firmId?: string;
+  status?: "at_mill" | "returned" | "not_sent";
   page?: number;
   limit?: number;
 };

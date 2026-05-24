@@ -2,12 +2,13 @@
 
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { useInfiniteList } from "@/lib/hooks/useInfiniteList";
+import { useFirms } from "@/lib/hooks/useFirms";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/data/DataTable";
 import { SearchBar } from "@/components/data/SearchBar";
@@ -16,11 +17,12 @@ import { FirmFilter } from "@/components/data/FirmFilter";
 import { PermissionGate } from "@/components/modules/PermissionGate";
 import { MillStatusBadge } from "@/components/common/MillStatusBadge";
 import { getTakas } from "@/lib/api/takas";
-import { getFirms } from "@/lib/api/firms";
 import { formatDecimal } from "@/lib/utils/formatDecimal";
 import { formatDate } from "@/lib/utils/formatDate";
 import { ROUTES } from "@/lib/routes";
 import type { Taka } from "@/lib/api/takas";
+
+type StatusTab = "all" | "at_mill" | "returned" | "not_sent";
 
 const LIMIT = 20;
 
@@ -28,6 +30,7 @@ export default function TakasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const status = (searchParams.get("status") ?? "all") as StatusTab;
   const search = searchParams.get("search") ?? undefined;
   const beam_no = searchParams.get("beam_no") ?? undefined;
   const firmId = searchParams.get("firmId") ?? undefined;
@@ -36,6 +39,8 @@ export default function TakasPage() {
   const meter_min = meterMinRaw ? Number(meterMinRaw) : undefined;
   const meter_max = meterMaxRaw ? Number(meterMaxRaw) : undefined;
 
+  const apiStatus = status === "all" ? undefined : status;
+
   const { items, totalCount, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useInfiniteList<Taka, {
       search?: string;
@@ -43,22 +48,21 @@ export default function TakasPage() {
       meter_min?: number;
       meter_max?: number;
       firmId?: string;
+      status?: "at_mill" | "returned" | "not_sent";
     }>({
-      queryKey: ["takas"],
-      params: { search, beam_no, meter_min, meter_max, firmId },
+      queryKey: ["takas", status],
+      params: { search, beam_no, meter_min, meter_max, firmId, status: apiStatus },
       limit: LIMIT,
       fetcher: getTakas,
     });
 
-  const { data: firmsData } = useQuery({
-    queryKey: ["firms-all"],
-    queryFn: () => getFirms({ limit: 100 }),
-  });
+  const { firmOptions, isLoading: firmsLoading } = useFirms();
 
-  const firmOptions = (firmsData?.data ?? []).map((f) => ({
-    value: f.id,
-    label: f.firmName,
-  }));
+  function handleTabChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", value);
+    router.push(`?${params.toString()}`);
+  }
 
   function handleBeamNoChange(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -152,7 +156,22 @@ export default function TakasPage() {
 
   return (
     <PermissionGate module="takas" action="view">
-      <PageHeader title="Takas" filter={<FirmFilter options={firmOptions} />} />
+      <PageHeader
+        title="Takas"
+        filter={
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <FirmFilter options={firmOptions} isLoading={firmsLoading} />
+            <Tabs value={status} onValueChange={handleTabChange}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="at_mill">At Mill</TabsTrigger>
+                <TabsTrigger value="returned">Returned</TabsTrigger>
+                <TabsTrigger value="not_sent">Not Sent</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        }
+      />
 
       <div className="space-y-4">
         <DataTable
