@@ -269,10 +269,12 @@ export function MobileNav() {
                     icon={UserCheck}
                     onClose={() => setOpen(false)}
                   />
-                  <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground opacity-50 cursor-default select-none">
-                    <Shield className="size-5 shrink-0" />
-                    <span>Permissions</span>
-                  </div>
+                  <MenuLink
+                    href={ROUTES.ADMIN.USERS}
+                    label="Users"
+                    icon={Shield}
+                    onClose={() => setOpen(false)}
+                  />
                 </div>
               </div>
             </SuperAdminGate>
