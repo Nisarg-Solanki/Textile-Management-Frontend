@@ -63,7 +63,7 @@ function ResetPasswordDialog({
           <DialogDescription asChild>
             <div className="space-y-2 pt-1">
               <p>We will send a password reset link to:</p>
-              <p className="font-medium text-foreground">{userEmail}</p>
+              <p className="font-medium text-foreground break-all">{userEmail}</p>
               <p>
                 Follow the link in your email to choose a new password. The link
                 expires in 1 hour.
@@ -130,24 +130,30 @@ export default function ProfilePage() {
 
           {/* Detail rows */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 text-sm">
-              <User className="size-4 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground w-28 shrink-0">
-                Full Name
-              </span>
-              <span className="font-medium">{user.name}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm">
+              <div className="flex items-center gap-3 shrink-0">
+                <User className="size-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground w-28 shrink-0">
+                  Full Name
+                </span>
+              </div>
+              <span className="font-medium break-words max-w-full">{user.name}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-sm">
-              <Mail className="size-4 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground w-28 shrink-0">Email</span>
-              <span className="font-medium">{user.email}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm">
+              <div className="flex items-center gap-3 shrink-0">
+                <Mail className="size-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground w-28 shrink-0">Email</span>
+              </div>
+              <span className="font-medium break-all sm:break-words max-w-full">{user.email}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-sm">
-              <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground w-28 shrink-0">Role</span>
-              <span className="font-medium">{roleLabel}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm">
+              <div className="flex items-center gap-3 shrink-0">
+                <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground w-28 shrink-0">Role</span>
+              </div>
+              <span className="font-medium break-words max-w-full">{roleLabel}</span>
             </div>
 
             {/* <div className="flex items-center gap-3 text-sm">
@@ -166,7 +172,7 @@ export default function ProfilePage() {
           <CardDescription>Manage your account password</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="text-sm font-medium">Password</p>
               <p className="text-xs text-muted-foreground">
@@ -176,7 +182,7 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               onClick={() => setResetDialogOpen(true)}
-              className="gap-2 shrink-0"
+              className="gap-2 shrink-0 w-full sm:w-auto"
             >
               <KeyRound className="size-4" />
               Reset Password
