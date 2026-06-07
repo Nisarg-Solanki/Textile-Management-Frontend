@@ -144,6 +144,12 @@ export function MachineStatusTable({
                           <TableHead className="w-[140px]">
                             Beam Meter
                           </TableHead>
+                          <TableHead className="w-[120px]">
+                            Total Meter
+                          </TableHead>
+                          <TableHead className="w-[100px]">
+                            Taka Count
+                          </TableHead>
                           <TableHead className="w-[160px]">
                             Taka Sr No
                           </TableHead>
@@ -153,7 +159,13 @@ export function MachineStatusTable({
                       </TableHeader>
                       <TableBody>
                         {machine.beams.map((beam, beamIdx) => {
-                          if (beam.takas.length === 0) {
+                          const takaCount = beam.takas.length;
+                          const totalMeter = beam.takas.reduce(
+                            (sum, t) => sum + parseFloat(t.takaMeter || "0"),
+                            0,
+                          );
+
+                          if (takaCount === 0) {
                             return (
                               <TableRow
                                 key={beam.id}
@@ -167,6 +179,12 @@ export function MachineStatusTable({
                                 </TableCell>
                                 <TableCell>
                                   {formatDecimal(beam.beamMeter)} m
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  —
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  0
                                 </TableCell>
                                 <TableCell
                                   colSpan={3}
@@ -190,16 +208,30 @@ export function MachineStatusTable({
                               {takaIdx === 0 && (
                                 <>
                                   <TableCell
-                                    rowSpan={beam.takas.length}
+                                    rowSpan={takaCount}
                                     className="font-medium align-top"
                                   >
                                     {beam.beamNo}
                                   </TableCell>
                                   <TableCell
-                                    rowSpan={beam.takas.length}
+                                    rowSpan={takaCount}
                                     className="align-top"
                                   >
                                     {formatDecimal(beam.beamMeter)} m
+                                  </TableCell>
+                                  <TableCell
+                                    rowSpan={takaCount}
+                                    className="align-top font-medium text-primary"
+                                  >
+                                    {formatDecimal(String(totalMeter))} m
+                                  </TableCell>
+                                  <TableCell
+                                    rowSpan={takaCount}
+                                    className="align-top font-medium"
+                                  >
+                                    <span className="inline-flex items-center justify-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
+                                      {takaCount}
+                                    </span>
                                   </TableCell>
                                 </>
                               )}

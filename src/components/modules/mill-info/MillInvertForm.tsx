@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +60,20 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
   const [firmPopoverOpen, setFirmPopoverOpen] = useState(false);
   const [outvertPopoverOpen, setOutvertPopoverOpen] = useState(false);
   const [takaPopoverOpen, setTakaPopoverOpen] = useState(false);
+  const [outvertSearch, setOutvertSearch] = useState("");
+  const [debouncedOutvertSearch, setDebouncedOutvertSearch] = useState("");
+
+  // Debounce outvert search input by 300ms
+  const outvertSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (outvertSearchTimer.current) clearTimeout(outvertSearchTimer.current);
+    outvertSearchTimer.current = setTimeout(() => {
+      setDebouncedOutvertSearch(outvertSearch);
+    }, 300);
+    return () => {
+      if (outvertSearchTimer.current) clearTimeout(outvertSearchTimer.current);
+    };
+  }, [outvertSearch]);
 
   const form = useForm<CreateMillInvertInput>({
     resolver: zodResolver(createMillInvertSchema),
@@ -85,8 +99,13 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
   });
 
   const { data: overtsData, isLoading: overtsLoading } = useQuery({
-    queryKey: ["mill-outverts-by-firm", selectedFirmId],
-    queryFn: () => getMillOutverts({ firmId: selectedFirmId!, limit: 100 }),
+    queryKey: ["mill-outverts-by-firm", selectedFirmId, debouncedOutvertSearch],
+    queryFn: () =>
+      getMillOutverts({
+        firmId: selectedFirmId!,
+        search: debouncedOutvertSearch || undefined,
+        limit: 100,
+      }),
     enabled: !!selectedFirmId,
   });
 
@@ -189,6 +208,8 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                                     form.setValue("millOutvertId", "");
                                     form.setValue("firmChallanNo", "");
                                     form.setValue("takaSrNos", []);
+                                    setOutvertSearch("");
+                                    setDebouncedOutvertSearch("");
                                     setFirmPopoverOpen(false);
                                   }}
                                 >
@@ -277,8 +298,12 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                       className="w-[var(--radix-popover-trigger-width)] p-0"
                       align="start"
                     >
-                      <Command>
-                        <CommandInput placeholder="Search challan no..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search challan no..."
+                          value={outvertSearch}
+                          onValueChange={setOutvertSearch}
+                        />
                         <CommandList>
                           {!overtsLoading && (
                             <CommandEmpty>No outverts found.</CommandEmpty>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
@@ -56,6 +56,20 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
   );
   const [firmPopoverOpen, setFirmPopoverOpen] = useState(false);
   const [takaPopoverOpen, setTakaPopoverOpen] = useState(false);
+  const [takaSearch, setTakaSearch] = useState("");
+  const [debouncedTakaSearch, setDebouncedTakaSearch] = useState("");
+
+  // Debounce taka search input by 300ms
+  const takaSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (takaSearchTimer.current) clearTimeout(takaSearchTimer.current);
+    takaSearchTimer.current = setTimeout(() => {
+      setDebouncedTakaSearch(takaSearch);
+    }, 300);
+    return () => {
+      if (takaSearchTimer.current) clearTimeout(takaSearchTimer.current);
+    };
+  }, [takaSearch]);
 
   const form = useForm<CreateMillOutvertInput>({
     resolver: zodResolver(createMillOutvertSchema),
@@ -79,8 +93,13 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
   });
 
   const { data: takasData, isLoading: takasLoading } = useQuery({
-    queryKey: ["takas-by-firm", selectedFirmId],
-    queryFn: () => getTakas({ firmId: selectedFirmId!, limit: 200 }),
+    queryKey: ["takas-by-firm", selectedFirmId, debouncedTakaSearch],
+    queryFn: () =>
+      getTakas({
+        firmId: selectedFirmId!,
+        search: debouncedTakaSearch || undefined,
+        limit: 200,
+      }),
     enabled: !!selectedFirmId,
   });
 
@@ -166,6 +185,8 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                                     field.onChange(option.value);
                                     setSelectedFirmId(option.value);
                                     form.setValue("takaSrNos", []);
+                                    setTakaSearch("");
+                                    setDebouncedTakaSearch("");
                                     setFirmPopoverOpen(false);
                                   }}
                                 >
@@ -306,8 +327,12 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                       className="w-[var(--radix-popover-trigger-width)] p-0"
                       align="start"
                     >
-                      <Command>
-                        <CommandInput placeholder="Search taka Sr No..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search taka Sr No..."
+                          value={takaSearch}
+                          onValueChange={setTakaSearch}
+                        />
                         <CommandList>
                           {!takasLoading && takaItems.length === 0 && (
                             <CommandEmpty>
