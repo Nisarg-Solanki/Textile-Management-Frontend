@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -350,22 +351,40 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                                 </div>
                               </>
                             ) : (
-                              takaItems.map((taka) => (
-                                <CommandItem
-                                  key={taka.id}
-                                  value={taka.takaSrNo}
-                                  onSelect={() => toggleTaka(taka.takaSrNo)}
-                                >
-                                  <Checkbox
-                                    checked={currentValue.includes(
-                                      taka.takaSrNo,
+                              takaItems.map((taka) => {
+                                const isAssigned = !!taka.productionInfo?.millOutvertDate;
+                                return (
+                                  <CommandItem
+                                    key={taka.id}
+                                    value={taka.takaSrNo}
+                                    onSelect={() => {
+                                      if (isAssigned) {
+                                        toast.error(`Taka No: ${taka.takaSrNo} has already been assigned to a mill outvert.`);
+                                        return;
+                                      }
+                                      toggleTaka(taka.takaSrNo);
+                                    }}
+                                    className={cn(
+                                      isAssigned && "opacity-50 cursor-not-allowed select-none",
                                     )}
-                                    className="mr-2"
-                                    tabIndex={-1}
-                                  />
-                                  {taka.takaSrNo}
-                                </CommandItem>
-                              ))
+                                  >
+                                    <Checkbox
+                                      checked={currentValue.includes(
+                                        taka.takaSrNo,
+                                      )}
+                                      disabled={isAssigned}
+                                      className="mr-2"
+                                      tabIndex={-1}
+                                    />
+                                    <span className="flex-1">{taka.takaSrNo}</span>
+                                    {isAssigned && (
+                                      <span className="text-xs text-muted-foreground italic">
+                                        (Already assigned)
+                                      </span>
+                                    )}
+                                  </CommandItem>
+                                );
+                              })
                             )}
                           </CommandGroup>
                         </CommandList>
