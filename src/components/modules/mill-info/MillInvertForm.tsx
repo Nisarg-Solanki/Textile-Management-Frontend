@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -98,15 +99,17 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
     queryFn: () => getMills({ status: "active", limit: 100 }),
   });
 
+  const selectedMillId = form.watch("millId");
   const { data: overtsData, isLoading: overtsLoading } = useQuery({
-    queryKey: ["mill-outverts-by-firm", selectedFirmId, debouncedOutvertSearch],
+    queryKey: ["mill-outverts-by-firm-mill", selectedFirmId, selectedMillId, debouncedOutvertSearch],
     queryFn: () =>
       getMillOutverts({
         firmId: selectedFirmId!,
+        mill: selectedMillId || undefined,
         search: debouncedOutvertSearch || undefined,
         limit: 100,
       }),
-    enabled: !!selectedFirmId,
+    enabled: !!selectedFirmId && !!selectedMillId,
   });
 
   const firmOptions = (firmsData?.data ?? []).map((f) => ({
@@ -280,15 +283,15 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                           type="button"
                           variant="outline"
                           role="combobox"
-                          disabled={!selectedFirmId}
+                          disabled={!selectedFirmId || !selectedMillId}
                           aria-expanded={outvertPopoverOpen}
                           className={cn(
                             "w-full justify-between font-normal",
                             !field.value && "text-muted-foreground",
                           )}
                         >
-                          {!selectedFirmId
-                            ? "Select a firm first"
+                          {!selectedFirmId || !selectedMillId
+                            ? "Select a firm and mill first"
                             : (selectedLabel ?? "Select an outvert")}
                           <ChevronDown className="ml-2 size-4 shrink-0 opacity-50" />
                         </Button>
@@ -486,20 +489,39 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                             </CommandEmpty>
                           )}
                           <CommandGroup>
-                            {takaOptions.map((srNo) => (
-                              <CommandItem
-                                key={srNo}
-                                value={srNo}
-                                onSelect={() => toggleTaka(srNo)}
-                              >
-                                <Checkbox
-                                  checked={currentValue.includes(srNo)}
-                                  className="mr-2"
-                                  tabIndex={-1}
-                                />
-                                {srNo}
-                              </CommandItem>
-                            ))}
+                            {takaOptions.map((srNo) => {
+                              const prodInfo = currentOutvert?.productionInfos?.find((p) => p.takaSrNo === srNo);
+                              const isAlreadyInverted = !!prodInfo?.millInvertDate;
+                              return (
+                                <CommandItem
+                                  key={srNo}
+                                  value={srNo}
+                                  onSelect={() => {
+                                    if (isAlreadyInverted) {
+                                      toast.error(`Taka No: ${srNo} returned with mill challan no ${prodInfo.millChallanNo || "N/A"}.`);
+                                      return;
+                                    }
+                                    toggleTaka(srNo);
+                                  }}
+                                  className={cn(
+                                    isAlreadyInverted && "opacity-50 cursor-not-allowed select-none",
+                                  )}
+                                >
+                                  <Checkbox
+                                    checked={currentValue.includes(srNo)}
+                                    disabled={isAlreadyInverted}
+                                    className="mr-2"
+                                    tabIndex={-1}
+                                  />
+                                  <span className="flex-1">{srNo}</span>
+                                  {isAlreadyInverted && (
+                                    <span className="text-xs text-muted-foreground italic">
+                                      (Returned: {prodInfo.millChallanNo || "N/A"})
+                                    </span>
+                                  )}
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
@@ -548,6 +570,7 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
       overtsData,
       outvertPopoverOpen,
       selectedFirmId,
+      selectedMillId,
       firmChallanNoValue,
       takaPopoverOpen,
       takaOptions,
