@@ -359,7 +359,9 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                                     value={taka.takaSrNo}
                                     onSelect={() => {
                                       if (isAssigned) {
-                                        toast.error(`Taka No: ${taka.takaSrNo} has already been assigned to a mill outvert.`);
+                                        toast.error(
+                                          `Taka No: ${taka.takaSrNo} has already been assigned to a mill outvert (Challan: ${taka.productionInfo?.firmChallanNo || "N/A"}).`
+                                        );
                                         return;
                                       }
                                       toggleTaka(taka.takaSrNo);
@@ -379,7 +381,7 @@ export function MillOutvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                                     <span className="flex-1">{taka.takaSrNo}</span>
                                     {isAssigned && (
                                       <span className="text-xs text-muted-foreground italic">
-                                        (Already assigned)
+                                        (Assigned in Challan: {taka.productionInfo?.firmChallanNo || "N/A"})
                                       </span>
                                     )}
                                   </CommandItem>

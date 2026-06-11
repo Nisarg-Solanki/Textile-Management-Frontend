@@ -15,12 +15,12 @@ export type MillOutvert = {
   firm?: { firmName: string };
   mill?: { millName: string };
   outvertTakas?: Array<{ id: string; takaSrNo: string; takaMeter: number }>;
-  productionInfos?: Array<{ id: string; takaSrNo: string }>;
+  productionInfos?: Array<{ id: string; takaSrNo: string; millInvertDate?: string; millChallanNo?: string }>;
 };
 
 type MillOutvertListParams = {
   search?: string;
-  millId?: string;
+  mill?: string;
   date_from?: string;
   date_to?: string;
   firmId?: string;
