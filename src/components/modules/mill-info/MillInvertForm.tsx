@@ -482,6 +482,43 @@ export function MillInvertForm({ defaultValues, onSubmit, isLoading }: Props) {
                     >
                       <Command>
                         <CommandInput placeholder="Search taka Sr No..." />
+                        {takaOptions.length > 0 && (
+                          <div className="flex items-center justify-between border-b px-3 py-2">
+                            <span className="text-xs text-muted-foreground">
+                              {currentValue.length} of {takaOptions.filter(srNo => !currentOutvert?.productionInfos?.find((p) => p.takaSrNo === srNo)?.millInvertDate).length} selected
+                            </span>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs font-medium text-primary hover:text-primary/80"
+                                onClick={() => {
+                                  const availableTakas = takaOptions.filter((srNo) => {
+                                    const prodInfo = currentOutvert?.productionInfos?.find((p) => p.takaSrNo === srNo);
+                                    return !prodInfo?.millInvertDate;
+                                  });
+                                  form.setValue("takaSrNos", availableTakas, { shouldValidate: true });
+                                }}
+                              >
+                                Select All
+                              </Button>
+                              {currentValue.length > 0 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs font-medium text-destructive hover:text-destructive/80"
+                                  onClick={() => {
+                                    form.setValue("takaSrNos", [], { shouldValidate: true });
+                                  }}
+                                >
+                                  Clear All
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         <CommandList>
                           {takaOptions.length === 0 && (
                             <CommandEmpty>
